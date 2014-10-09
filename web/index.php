@@ -140,12 +140,12 @@
 								text: 'Valore',
 							},
 							min: 0,
-							max: 100,
+							max: 100/*,
 							plotLines: [{
 								value: 0,
 								width: 1,
 								color: '#808080'
-							}]
+							}]*/
 						},
 						plotOptions: {
 							series: {
