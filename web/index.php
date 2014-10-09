@@ -167,8 +167,8 @@
 						$('html,body').animate({
 							scrollTop: dest
 						}, 2000, 'swing');
-						$('#wait').hide();
 					}
+					$('#wait').hide();
 				}
 			}
 			xmlhttp.open("POST","showGraph.php",true);
