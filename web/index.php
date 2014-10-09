@@ -149,7 +149,8 @@
 						},
 						plotOptions: {
 							series: {
-								compare: 'value'
+								compare: 'value',
+								turboThreshold: 0
 							}
 						},
 						series: [{
