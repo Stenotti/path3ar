@@ -153,17 +153,22 @@
 						}]
 					});
 					
-					var dest = 0;
-					if ($('#graph').offset().top > $(document).height() - $(window).height()) {
-						dest = $(document).height() - $(window).height();
-					} else {
-						dest = $('#graph').offset().top;
+					if(lightData.length == 0 && noiseData.length == 0){
+						alert("Non ci sono campionamenti in questo raggio");
 					}
-					//go to destination
-					$('html,body').animate({
-						scrollTop: dest
-					}, 2000, 'swing');
-					$('#wait').hide();
+					else{
+						var dest = 0;
+						if ($('#graph').offset().top > $(document).height() - $(window).height()) {
+							dest = $(document).height() - $(window).height();
+						} else {
+							dest = $('#graph').offset().top;
+						}
+						//go to destination
+						$('html,body').animate({
+							scrollTop: dest
+						}, 2000, 'swing');
+						$('#wait').hide();
+					}
 				}
 			}
 			xmlhttp.open("POST","showGraph.php",true);
