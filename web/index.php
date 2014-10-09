@@ -87,7 +87,6 @@
 			}
 			xmlhttp.onreadystatechange=function() {
 				if (xmlhttp.readyState==4 && xmlhttp.status==200) {
-					console.log(xmlhttp.responseText);
 					var labelData = JSON.parse(xmlhttp.responseText);
 					var lightData = [];
 					var noiseData = [];
@@ -153,6 +152,7 @@
 						}]
 					});
 					
+					$('#wait').hide();
 					if(lightData.length == 0 && noiseData.length == 0){
 						alert("Non ci sono campionamenti in questo raggio");
 					}
@@ -168,13 +168,11 @@
 							scrollTop: dest
 						}, 2000, 'swing');
 					}
-					$('#wait').hide();
 				}
 			}
 			xmlhttp.open("POST","showGraph.php",true);
 			xmlhttp.setRequestHeader("Content-type","application/x-www-form-urlencoded");
 			xmlhttp.send("ids="+JSON.stringify(graphDataIds));
-					console.log("ids="+JSON.stringify(graphDataIds));
 			$('#wait').show();
 		}
 
