@@ -109,10 +109,7 @@
 					}
 					lightData = lightData.sort(Comparator);
 					noiseData = noiseData.sort(Comparator);
-					lightData = JSON.stringify(lightData);
-					noiseData = JSON.stringify(noiseData);
-					console.log(lightData);
-					
+										
 					Highcharts.setOptions({
 						global : {
 							useUTC : false
@@ -130,26 +127,20 @@
 							text: 'LIGHT/NOISE'
 						},
 						xAxis: {
-							type: 'datetime',
 							title: {
 								text: 'Timestamp'
-							}
+							},
+							tickmarkPlacement: 'on'
 						},
 						yAxis: {
 							title: {
 								text: 'Valore',
 							},
 							min: 0,
-							max: 100/*,
-							plotLines: [{
-								value: 0,
-								width: 1,
-								color: '#808080'
-							}]*/
+							max: 100
 						},
 						plotOptions: {
 							series: {
-								compare: 'value',
 								turboThreshold: 0
 							}
 						},
