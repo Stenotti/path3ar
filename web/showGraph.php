@@ -1,10 +1,10 @@
 <?php
 if(isset($_POST['ids']) && !empty($_POST['ids'])){
 	$ids = json_decode($_POST['ids']);
-	$conn_string = "host=pathdb.ccokugosuzr8.eu-west-1.rds.amazonaws.com port=5432 dbname=pathdb user=pathadmin password=pathdbpwd connect_timeout=10";
+	$conn_string = "host=pathdb.ccokugosuzr8.eu-west-1.rds.amazonaws.com port=5432 dbname=pathdb user=pathadmin password=pathdbpwd";
 	$dbconn = pg_connect($conn_string) or die('connection failed');
 	
-	echo $dbconn
+	echo "asd";
 
 	/*$response = array();
 	
