@@ -31,6 +31,7 @@
 		var zoomFluid;
 		var jsonData;
 		var currentCoord;
+		var marker, markerCircle;
 		
 		function Comparator(a,b){
 			if (a[0] < b[0]) return -1;
@@ -202,7 +203,25 @@
 				if(zoom < 15)
 					zoom = 15;
 				setTimeout("map.setZoom("+zoom+")",500);
-				
+				marker.setMap(null);
+				markerCircle.setMap(null);
+				marker = new google.maps.Marker({
+					position: currentCoord,
+					map: map,
+					title: currentCoord
+				});
+				var circleOptions = {
+				  strokeColor: '#FF0000',
+				  strokeOpacity: 0.8,
+				  strokeWeight: 2,
+				  fillColor: '#FF0000',
+				  fillOpacity: 0.35,
+				  map: map,
+				  center: currentCoord,
+				  radius: document.getElementById('radiusKM').value
+				};
+				// Add the circle for this city to the map.
+				markerCircle = new google.maps.Circle(circleOptions);
 				showGraph();
 			});
 		}
