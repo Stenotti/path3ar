@@ -94,10 +94,10 @@
 					var noiseData = [];
 					for (var i = 0; i < labelData.length; i++) {
 						var label = labelData[i];
-						var ms=Date.parse(label[2]);
 						var date = new Date();
 						var offsetMS = date.getTimezoneOffset()*60*1000;
-						var value = parseFloat(label[1]-offsetMS);
+						var ms=Date.parse(label[2])-offsetMS;
+						var value = parseFloat(label[1]);
 						if(value<0 || value == 0.0001) 
 							value = 0.0;
 						if(value == 100.0001)
