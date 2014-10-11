@@ -287,7 +287,7 @@
       <button onclick="removeMarker()">Remove marker</button>
     </div>
     <div id="map-canvas" ></div>
-	<div id="numSamples"></div>
+	<br><center><b><div id="numSamples"></div></b></center>
 	<div id="graph" style="width:100%; height:400px;"></div>
 	<div id="wait" style="display:none;width:128px;height:128px;border:0px; position:absolute;top:40%;left:45%;padding:2px;">
 		<img src='loader.gif' width="100" height="100" /><br>
