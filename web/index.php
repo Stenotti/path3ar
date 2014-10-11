@@ -204,8 +204,8 @@
 				var lng = event.latLng.lng();
 				map.panTo(currentCoord);
 				var zoom = map.getZoom();
-				if(zoom < 15)
-					zoom = 15;
+				if(zoom < 13)
+					zoom = 13;
 				setTimeout("map.setZoom("+zoom+")",500);
 				if(marker != null){
 					marker.setMap(null);
