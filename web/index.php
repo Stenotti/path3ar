@@ -12,7 +12,7 @@
       #panel {
         position: absolute;
         top: 5px;
-        left: 25%;
+        left: 20%;
         z-index: 5;
         background-color: #fff;
         padding: 5px;
@@ -260,6 +260,13 @@
 		function changeOpacity() {
 		  heatmap.set('opacity', heatmap.get('opacity') ? null : 0.2);
 		}
+		
+		function removeMarker() {
+			if(marker != null){
+				marker.setMap(null);
+				markerCircle.setMap(null);
+			}
+		}
 
 		google.maps.event.addDomListener(window, 'load', initialize);
 
@@ -273,6 +280,7 @@
       <button onclick="changeGradient()">Change gradient</button>
       <button onclick="changeRadius()">Change radius</button>
       <button onclick="changeOpacity()">Change opacity</button>
+      <button onclick="removeMarker()">Remove marker</button>
     </div>
     <div id="map-canvas" ></div>
 	<div id="graph" style="width:100%; height:400px;"></div>
