@@ -76,7 +76,6 @@
 				var jsonCoord = jsonData[i];
 				var radius = document.getElementById('radiusM').value;
 				var dist = distanceInMeters(currentCoord.lat(), currentCoord.lng(), jsonCoord[1], jsonCoord[2]);
-				console.log(dist +" vs "+ radius);
 				if(dist <= radius){
 					graphDataIds.push(jsonCoord[0]); // Inserisco l'id del sample
 				}
@@ -156,27 +155,27 @@
 					});
 					
 					$('#wait').hide();
-					if(lightData.length == 0 && noiseData.length == 0){
-						alert("Non ci sono campionamenti in questo raggio");
+					var dest = 0;
+					if ($('#graph').offset().top > $(document).height() - $(window).height()) {
+						dest = $(document).height() - $(window).height();
+					} else {
+						dest = $('#graph').offset().top;
 					}
-					else{
-						var dest = 0;
-						if ($('#graph').offset().top > $(document).height() - $(window).height()) {
-							dest = $(document).height() - $(window).height();
-						} else {
-							dest = $('#graph').offset().top;
-						}
-						//go to destination
-						$('html,body').animate({
-							scrollTop: dest
-						}, 2000, 'swing');
-					}
+					//go to destination
+					$('html,body').animate({
+						scrollTop: dest
+					}, 2000, 'swing');
 				}
 			}
-			xmlhttp.open("POST","showGraph.php",true);
-			xmlhttp.setRequestHeader("Content-type","application/x-www-form-urlencoded");
-			xmlhttp.send("ids="+JSON.stringify(graphDataIds));
-			$('#wait').show();
+			if(graphDataIds.length == 0){
+				alert("Non ci sono campionamenti in questo raggio");
+			}
+			else{
+				xmlhttp.open("POST","showGraph.php",true);
+				xmlhttp.setRequestHeader("Content-type","application/x-www-form-urlencoded");
+				xmlhttp.send("ids="+JSON.stringify(graphDataIds));
+				$('#wait').show();
+			}
 		}
 
 		function initialize() {
