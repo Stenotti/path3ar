@@ -73,7 +73,7 @@
 			var jsonObj = [];
 			for (var i = 0; i < jsonData.length; i++) {
 				var jsonCoord = jsonData[i];
-				var radius = document.getElementById('radiusKM').value;
+				var radius = document.getElementById('radiusM').value;
 				var dist = distance(currentCoord.lat(), currentCoord.lng(), jsonCoord[1], jsonCoord[2]);
 				if(dist <= radius){
 					graphDataIds.push(jsonCoord[0]); // Inserisco l'id del sample
@@ -220,7 +220,7 @@
 				  fillOpacity: 0.35,
 				  map: map,
 				  center: currentCoord,
-				  radius: parseFloat(document.getElementById('radiusKM').value) * 1000
+				  radius: parseFloat(document.getElementById('radiusM').value)
 				};
 				// Add the circle for this city to the map.
 				markerCircle = new google.maps.Circle(circleOptions);
@@ -275,7 +275,7 @@
 
   <body>
     <div id="panel">
-	  Radius: <input type="number" id="radiusKM" max="30" min="1" size="3" value="1">km
+	  Radius: <input type="number" id="radiusM" max="30000" min="1" size="5" value="500">m
       <button onclick="toggleHeatmap()">Toggle Heatmap</button>
       <button onclick="changeGradient()">Change gradient</button>
       <button onclick="changeRadius()">Change radius</button>
