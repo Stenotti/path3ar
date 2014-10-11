@@ -210,7 +210,7 @@
 				marker = new google.maps.Marker({
 					position: currentCoord,
 					map: map,
-					title: currentCoord
+					title: "Position: "+lat+", "+lng
 				});
 				var circleOptions = {
 				  strokeColor: '#FF0000',
