@@ -275,7 +275,7 @@
 
   <body>
     <div id="panel">
-	  Radius: <input type="number" id="radiusM" max="30000" min="1" size="5" value="500">m
+	  Radius: <input type="number" id="radiusM" max="30000" min="1" size="3" value="500">m
       <button onclick="toggleHeatmap()">Toggle Heatmap</button>
       <button onclick="changeGradient()">Change gradient</button>
       <button onclick="changeRadius()">Change radius</button>
