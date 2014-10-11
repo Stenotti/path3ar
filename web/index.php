@@ -203,8 +203,10 @@
 				if(zoom < 15)
 					zoom = 15;
 				setTimeout("map.setZoom("+zoom+")",500);
-				marker.setMap(null);
-				markerCircle.setMap(null);
+				if(marker != null){
+					marker.setMap(null);
+					markerCircle.setMap(null);
+				}
 				marker = new google.maps.Marker({
 					position: currentCoord,
 					map: map,
