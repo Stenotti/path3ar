@@ -172,9 +172,11 @@
 			if(graphDataIds.length == 0){
 				$('#numSamples').html("Number of samples: 0");
 				alert("There are no samples in this radius");
-				var chart = $('#graph').highcharts();				
-				while(chart.series.length > 0)
-					chart.series[0].remove(true);
+				var chart = $('#graph').highcharts();
+				if(chart != null){
+					while(chart.series.length > 0)
+						chart.series[0].remove(true);
+				}
 			}
 			else{
 				xmlhttp.open("POST","showGraph.php",true);
