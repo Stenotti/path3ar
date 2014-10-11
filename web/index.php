@@ -110,7 +110,9 @@
 					}
 					lightData = lightData.sort(Comparator);
 					noiseData = noiseData.sort(Comparator);
-										
+					
+					$('#numSamples').html("Number of samples: "+lightData.length);
+					
 					Highcharts.setOptions({
 						global : {
 							useUTC : false
@@ -168,7 +170,8 @@
 				}
 			}
 			if(graphDataIds.length == 0){
-				alert("Non ci sono campionamenti in questo raggio");
+				$('#numSamples').html("Number of samples: 0");
+				alert("There are no samples in this radius");
 			}
 			else{
 				xmlhttp.open("POST","showGraph.php",true);
@@ -284,6 +287,7 @@
       <button onclick="removeMarker()">Remove marker</button>
     </div>
     <div id="map-canvas" ></div>
+	<div id="numSamples"></div>
 	<div id="graph" style="width:100%; height:400px;"></div>
 	<div id="wait" style="display:none;width:128px;height:128px;border:0px; position:absolute;top:40%;left:45%;padding:2px;">
 		<img src='loader.gif' width="100" height="100" /><br>
