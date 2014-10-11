@@ -3,8 +3,10 @@ if(isset($_POST['ids']) && !empty($_POST['ids'])){
 	$ids = json_decode($_POST['ids']);
 	$conn_string = "host=pathdb.ccokugosuzr8.eu-west-1.rds.amazonaws.com port=5432 dbname=pathdb user=pathadmin password=pathdbpwd connect_timeout=10";
 	$dbconn = pg_connect($conn_string) or die('connection failed');
+	
+	echo $dbconn
 
-	$response = array();
+	/*$response = array();
 	
 	foreach ($ids as $id) {
 		$result = pg_exec($dbconn, "select label.type, label.value, sample.timestamp from label, sample where label.sample_id=sample.id and label.sample_id=$id");
@@ -18,7 +20,7 @@ if(isset($_POST['ids']) && !empty($_POST['ids'])){
 	}
 	// save the JSON encoded array
 	$jsonData = json_encode($response); 
-	echo $jsonData;
+	echo $jsonData;*/
 	pg_close($dbconn);
 }
 else{
