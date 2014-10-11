@@ -61,11 +61,11 @@
 			xmlhttp.send();
 		}
 		
-		function distance(lat1, lon1, lat2, lon2){
+		function distanceInMeters(lat1, lon1, lat2, lon2){
 			var R = 6371;
 			var a = 0.5 - Math.cos((lat2 - lat1) * Math.PI / 180)/2 + Math.cos(lat1 * Math.PI / 180) * 
 					Math.cos(lat2 * Math.PI / 180) * (1 - Math.cos((lon2 - lon1) * Math.PI / 180))/2;
-			return R * 2 * Math.asin(Math.sqrt(a));
+			return R * 2 * Math.asin(Math.sqrt(a)) * 1000;
 		}
 				
 		function showGraph() {
@@ -74,7 +74,8 @@
 			for (var i = 0; i < jsonData.length; i++) {
 				var jsonCoord = jsonData[i];
 				var radius = document.getElementById('radiusM').value;
-				var dist = distance(currentCoord.lat(), currentCoord.lng(), jsonCoord[1], jsonCoord[2]);
+				var dist = distanceInMeters(currentCoord.lat(), currentCoord.lng(), jsonCoord[1], jsonCoord[2]);
+				console.log(dist +" vs "+ radius);
 				if(dist <= radius){
 					graphDataIds.push(jsonCoord[0]); // Inserisco l'id del sample
 				}
