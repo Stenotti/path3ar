@@ -4,42 +4,7 @@
     <meta charset="utf-8">
 	<link rel="shortcut icon" type="image/x-icon" href="favicon.ico">
     <title>Heatmaps</title>
-    <style>
-      html, body, #map-canvas {
-        height: 100%;
-        margin: 0px;
-        padding: 0px
-      }
-      #panel {
-        position: absolute;
-        top: 5px;
-        left: 20%;
-        z-index: 5;
-        background-color: #fff;
-        padding: 5px;
-        border: 1px solid #999;
-      }
-	  #bottomPanel {
-        position: absolute;
-        bottom: 4%;
-        left: 2%;
-		right: 76%;
-        z-index: 5;
-        background-color: #fff;
-        padding: 5px;
-        border: 1px solid #999;
-      }
-	  #bottomSlider {
-        position: absolute;
-        bottom: 4%;
-        left: 30%;
-        right: 10%;
-        z-index: 5;
-        padding: 15px;
-		background:#fff;
-        border: 1px solid #999;
-      }
-    </style>
+    <link href="index.css" rel="stylesheet" type="text/css">
 	<script src="customFormat.js"></script>
 	<link rel="stylesheet" href="//code.jquery.com/ui/1.11.1/themes/smoothness/jquery-ui.css">
 	<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.min.js"></script>
@@ -47,13 +12,15 @@
 	<script src="http://code.highcharts.com/stock/highstock.js"></script>
     <script src="https://maps.googleapis.com/maps/api/js?v=3.exp&libraries=visualization"></script>
 	<script>
+		var sliderStep = 60;
+		var numberOfTimeRanges = 1440 / sliderStep;
 		var samplesData; // Lista di tutti i campionamenti
 		var samplesCoordsData = []; // Lista delle coordinate dei campionamenti
 		var samplesNoiseData = []; // Lista delle coordinate dei campionamenti
-		var samplesNoiseTimedData = [96]; // Lista delle coordinate dei campionamenti divisi per l'orario (ogni quarto d'ora)
+		var samplesNoiseTimedData = [numberOfTimeRanges]; // Lista delle coordinate dei campionamenti divisi per l'orario (ogni quarto d'ora)
 		var samplesLightData = []; // Lista delle coordinate dei campionamenti
-		var samplesLightTimedData = [96]; // Lista delle coordinate dei campionamenti divisi per l'orario (ogni quarto d'ora -> 24*4)
-		var samplesIndexes = [96];
+		var samplesLightTimedData = [numberOfTimeRanges]; // Lista delle coordinate dei campionamenti divisi per l'orario (ogni quarto d'ora -> 24*4)
+		var samplesIndexes = [numberOfTimeRanges];
 		var graphDataIds = [];
 		var invisibleMarkers = [];
 		var map, heatmap;
@@ -63,6 +30,8 @@
 		var currentShown = -1; // 0 = Samples, 1 = Light, 2 = Noise
 		var hours = "00", minutes = "00";
 		var offsetMS;
+		
+		var lightGraph, noiseGraph;
 		
 		function Comparator(a,b){
 			if (a[0] < b[0]) return -1;
@@ -84,27 +53,10 @@
 						var jsonCoord = samplesData[i]; 
 						//[0]=id, [1]=lat, [2]=lng, [3]=timestamp, [4]=type1, [5]=value1, [6]=type2, [7]=value2
 						var jsonCoordLight, jsonCoordNoise;
-						var light, noise;
 						
-						if(jsonCoord[4] == 'LIGHT' && jsonCoord[6] == 'NOISE'){
-							light=parseFloat(jsonCoord[5]);
-							noise=parseFloat(jsonCoord[7]);
-						}
-						else if(jsonCoord[6] == 'LIGHT' && jsonCoord[4] == 'NOISE'){
-							light=parseFloat(jsonCoord[7]);
-							noise=parseFloat(jsonCoord[5]);
-						}
-						else{
-							alert("Error while getting data from database");
-						}
-						if(light<0 || light == 0.0001) 
-							light = 0.0;
-						if(light == 100.0001)
-							light = 100.0;
-						if(noise<0 || noise == 0.0001) 
-							noise = 0.0;
-						if(noise == 100.0001)
-							noise = 100.0;
+						var light = getLightFromJson(jsonCoord);
+						var noise = getNoiseFromJson(jsonCoord);
+						
 						var ms=Date.parse(jsonCoord[3])-offsetMS;
 						var date = new Date(ms);
 						var hourtime = date.customFormat("#DD#/#MM#/#YYYY# #hhh#:#mm#:#ss#");
@@ -170,33 +122,27 @@
 			}
 			var lightData = [];
 			var noiseData = [];
+			var plotXLines = [];
+			var lastDate = 0;
 			for (var i = 0; i < graphData.length; i++) {
 				var label = graphData[i];
 				//[0]=id, [1]=lat, [2]=lng, [3]=timestamp, [4]=type1, [5]=value1, [6]=type2, [7]=value2
-				var date = new Date();
 				var ms=Date.parse(label[3])-offsetMS;
-				var value1 = parseFloat(label[5]);
-				var value2 = parseFloat(label[7]);
-				if(value1<0 || value1 == 0.0001) 
-					value1 = 0.0;
-				if(value1 == 100.0001)
-					value1 = 100.0;
-				if(value2<0 || value2 == 0.0001) 
-					value2 = 0.0;
-				if(value2 == 100.0001)
-					value2 = 100.0;
+				var date = new Date(ms);
+				var hourtime = date.customFormat("#DD#/#MM#/#YYYY#");
+				if(lastDate == 0 || lastDate != hourtime){
+					plotXLines.push(ms);
+					lastDate = hourtime;
+				}
+				
+				var light = getLightFromJson(label);
+				var noise = getNoiseFromJson(label);
 				var toAddLight = [];
 				var toAddNoise = [];
 				toAddLight.push(ms);
+				toAddLight.push(light);
 				toAddNoise.push(ms);
-				if(label[4] == 'LIGHT' && label[6] == 'NOISE'){
-					toAddLight.push(value1);
-					toAddNoise.push(value2);
-				}
-				else if(label[6] == 'LIGHT' && label[4] == 'NOISE'){
-					toAddLight.push(value2);
-					toAddNoise.push(value1);
-				}
+				toAddNoise.push(noise);
 				lightData.push(toAddLight);
 				noiseData.push(toAddNoise);
 			}
@@ -204,6 +150,65 @@
 			noiseData = noiseData.sort(Comparator);
 			
 			$('#numSamples').html("Number of samples: "+lightData.length);
+			
+			lightGraph.series[0].setData(lightData);
+			noiseGraph.series[0].setData(lightData);
+			lightGraph.xAxis[0].setExtremes();
+			noiseGraph.xAxis[0].setExtremes();
+			
+			lightGraph.xAxis[0].removePlotLine('light-plotLine');
+			noiseGraph.xAxis[0].removePlotLine('noise-plotLine');
+			for(var i=0; i<plotXLines.length; i++){
+				var d = new Date(plotXLines[i]);
+				var datetext = d.customFormat("#DD#/#MM#");
+				lightGraph.xAxis[0].addPlotLine({
+					id: 'light-plotLine',
+					value: plotXLines[i],
+					width: 1,
+					color: 'green',
+					dashStyle: 'dash'/*,
+					label: {
+						text: datetext,
+						align: 'center',
+						y: 12,
+						x: 0
+					}*/
+				});
+				noiseGraph.xAxis[0].addPlotLine({
+					id: 'noise-plotLine',
+					value: plotXLines[i],
+					width: 1,
+					color: 'green',
+					dashStyle: 'dash'/*,
+					label: {
+						text: datetext,
+						align: 'center',
+						y: 12,
+						x: 0
+					}*/
+				});
+			}
+		}
+
+		function initialize() {
+			bounds = new google.maps.LatLngBounds();
+			var mapOptions = {
+				mapTypeId: google.maps.MapTypeId.SATELLITE
+			};
+			map = new google.maps.Map(document.getElementById('map-canvas'), mapOptions);
+			heatmap = new google.maps.visualization.HeatmapLayer();
+			heatmap.setMap(map);
+			heatmap.set('maxIntensity', 8);
+			
+			var date = new Date();
+			offsetMS = date.getTimezoneOffset()*60*1000;
+					
+			getSamples();
+			createTimedArrays();
+			map.fitBounds(bounds);
+			
+			$('#time').html("00:00 - 00:"+(sliderStep-1));
+			$('#numSamples').html("Number of samples: 0");
 			
 			Highcharts.setOptions({
 				global : {
@@ -242,7 +247,7 @@
 				series: [{
 					type: 'column',
 					name: 'LIGHT',
-					data: lightData
+					data: []
 				}]
 			});
 			$('#graphNoise').highcharts('StockChart', {
@@ -276,40 +281,12 @@
 				},
 				series: [{
 					type: 'column',
-					name: 'NOISE',
-					data: noiseData
+					name: 'LIGHT',
+					data: []
 				}]
 			});
-			var dest = 0;
-			if ($('#graphLight').offset().top > $(document).height() - $(window).height()) {
-				dest = $(document).height() - $(window).height();
-			} else {
-				dest = $('#graphLight').offset().top;
-			}
-			//go to destination
-			$('html,body').animate({
-				scrollTop: dest
-			}, 2000, 'swing');
-		}
-
-		function initialize() {
-			bounds = new google.maps.LatLngBounds();
-			var mapOptions = {
-				mapTypeId: google.maps.MapTypeId.SATELLITE
-			};
-			map = new google.maps.Map(document.getElementById('map-canvas'), mapOptions);
-			heatmap = new google.maps.visualization.HeatmapLayer();
-			heatmap.setMap(map);
-			heatmap.set('maxIntensity', 8);
-			
-			var date = new Date();
-			offsetMS = date.getTimezoneOffset()*60*1000;
-					
-			getSamples();
-						
-			createTimedArrays();
-			
-			map.fitBounds(bounds);
+			lightGraph = $('#graphLight').highcharts();
+			noiseGraph = $('#graphNoise').highcharts();
 		}
 		
 		function clickFunction(coord){
@@ -342,6 +319,7 @@
 			};
 			// Add the circle for this city to the map.
 			markerCircle = new google.maps.Circle(circleOptions);
+			document.getElementById("removeMarkerId").style.display = "block";
 			showGraph();
 		}
 		
@@ -349,8 +327,8 @@
 			jQuery('#slider-time').slider({
 				range: false,
 				min: 0,
-				max: 1440,
-				step: 15,
+				max: 1440-sliderStep,
+				step: sliderStep,
 				slide: function(e, ui) {
 					hours = Math.floor(ui.value / 60);
 					minutes = ui.value - (hours * 60);
@@ -358,7 +336,7 @@
 					if(hours < 10) hours = '0' + hours;
 					if(minutes.length < 10) minutes = '0' + minutes;
 					if(minutes == 0) minutes = '00';
-					$('#time').html(hours+':'+minutes+" - "+hours+':'+(parseInt(minutes)+14));
+					$('#time').html(hours+':'+minutes+" - "+hours+':'+(parseInt(minutes)+sliderStep-1));
 					
 					if(currentShown == 1 || currentShown == 2){
 						updateDataInTimeRange();
@@ -397,7 +375,7 @@
 		}
 		
 		function createTimedArrays(){
-			for(var i=0; i<96; i++) {
+			for(var i=0; i<numberOfTimeRanges; i++) {
 				samplesLightTimedData[i] = [];
 				samplesNoiseTimedData[i] = [];
 				samplesIndexes[i] = [];
@@ -409,7 +387,7 @@
 				var hourtime = date.customFormat("#hhh#:#mm#:#ss#");
 				var sampleHour = hourtime.split(":")[0];
 				var sampleMins = hourtime.split(":")[1];
-				var arrayIndex = sampleHour*4 + parseInt(sampleMins/15);
+				var arrayIndex = sampleHour*(60/sliderStep) + parseInt(sampleMins/sliderStep);
 				
 				var coord = new google.maps.LatLng(jsonCoord[1], jsonCoord[2]);
 				var light = getLightFromJson(jsonCoord);
@@ -442,7 +420,7 @@
 			if(currentShown == 1 || currentShown == 2){
 				heatmap.setData([]);
 				setAllMap(null);
-				var arrayIndex = parseInt(hours)*4 + parseInt(minutes/15);
+				var arrayIndex = parseInt(hours)*(60/sliderStep) + parseInt(minutes/sliderStep);
 				for(var i=0; i<samplesIndexes[arrayIndex].length; i++){
 					setMarkerMap(samplesIndexes[arrayIndex][i], map);
 				}
@@ -458,6 +436,9 @@
 		}
 		
 		function toggleSamples() {
+			$("#samplesButton").addClass("buttonActive");
+			$("#lightButton").removeClass("buttonActive");
+			$("#noiseButton").removeClass("buttonActive");
 			document.getElementById("bottomSlider").style.display = "none";
 			if(currentShown != 0){
 				heatmap.setData([]);
@@ -469,6 +450,9 @@
 		}
 		
 		function toggleLight() {
+			$("#samplesButton").removeClass("buttonActive");
+			$("#lightButton").addClass("buttonActive");
+			$("#noiseButton").removeClass("buttonActive");
 			removeMarker();
 			document.getElementById("bottomSlider").style.display = "block";
 			if(currentShown != 1){
@@ -480,6 +464,9 @@
 		}
 		
 		function toggleNoise() {
+			$("#samplesButton").removeClass("buttonActive");
+			$("#lightButton").removeClass("buttonActive");
+			$("#noiseButton").addClass("buttonActive");
 			removeMarker();
 			document.getElementById("bottomSlider").style.display = "block";
 			if(currentShown != 2){
@@ -489,43 +476,12 @@
 				updateDataInTimeRange();
 			}
 		}
-
-		function toggleHeatmap() {
-			heatmap.setMap(heatmap.getMap() ? null : map);
-		}
-
-		function changeGradient() {
-		  var gradient = [
-			'rgba(0, 255, 255, 0)',
-			'rgba(0, 255, 255, 1)',
-			'rgba(0, 191, 255, 1)',
-			'rgba(0, 127, 255, 1)',
-			'rgba(0, 63, 255, 1)',
-			'rgba(0, 0, 255, 1)',
-			'rgba(0, 0, 223, 1)',
-			'rgba(0, 0, 191, 1)',
-			'rgba(0, 0, 159, 1)',
-			'rgba(0, 0, 127, 1)',
-			'rgba(63, 0, 91, 1)',
-			'rgba(127, 0, 63, 1)',
-			'rgba(191, 0, 31, 1)',
-			'rgba(255, 0, 0, 1)'
-		  ]
-		  heatmap.set('gradient', heatmap.get('gradient') ? null : gradient);
-		}
-
-		function changeRadius() {
-			heatmap.set('radius', heatmap.get('radius') ? null : 20);
-		}
-
-		function changeOpacity() {
-		  heatmap.set('opacity', heatmap.get('opacity') ? null : 0.2);
-		}
 		
 		function removeMarker() {
 			if(marker != null){
 				marker.setMap(null);
 				markerCircle.setMap(null);
+				document.getElementById("removeMarkerId").style.display = "none";
 			}
 		}
 
@@ -535,30 +491,40 @@
   </head>
 
   <body>
-    <div id="panel">
-	  Radius: <input type="number" id="radiusM" max="30000" min="1" size="3" value="500">m
-      <button onclick="toggleHeatmap()">Toggle Heatmap</button>
-      <button onclick="changeGradient()">Change gradient</button>
-      <button onclick="changeRadius()">Change radius</button>
-      <button onclick="changeOpacity()">Change opacity</button>
-      <button onclick="removeMarker()">Remove marker</button>
+    <div id="panel" class="labeltextbox">
+	  Radius: <input type="number" id="radiusM" max="30000" min="1" size="2" value="100" class="textbox"> m<br><br>
+      <button onclick="removeMarker()" id="removeMarkerId" class="myButton" style="display:none">Remove marker</button>
     </div>
 	<div id="bottomPanel">
-      <button onclick="toggleSamples()"><font size=5>Samples</font></button>
-      <button onclick="toggleLight()"><font size=5>Light</font></button>
-      <button onclick="toggleNoise()"><font size=5>Noise</font></button>
+      <button onclick="toggleSamples()" id="samplesButton" class="myButton"><font size=5>Samples</font></button><br>
+      <button onclick="toggleLight()" id="lightButton" class="myButton"><font size=5>Light</font></button><br>
+      <button onclick="toggleNoise()" id="noiseButton" class="myButton"><font size=5>Noise</font></button><br>
 	</div>
 	<div id="bottomSlider" >
-		<center><b>Time range: <label id="time">00:00 - 00:14</label></b></center><br>
+		<center><b>Time range: <label id="time"></label></b></center><br>
 		<div id="slider-time"></div>
 	</div>
 	
-    <div id="map-canvas" ></div>
-	<br><center><b><div id="numSamples"></div></b></center>
-	<table width="100%">
+	<table width="100%" height="100%">
 		<tr>
-			<td width="48%"><div id="graphLight"></div></td>
-			<td width="48%"><div id="graphNoise"></div></td>
+			<td width="50%">
+				<div id="map-canvas" ></div>
+			</td>
+			<td width="50%">
+				<div class="scrollable">
+					<table width="100%" >
+						<tr>
+							<td><center><b><div id="numSamples"></div></b></center></td>
+						</tr>
+						<tr width="100%" height="50%">
+							<td><div id="graphLight"></div></td>
+						</tr>
+						<tr width="100%" height="50%">
+							<td><div id="graphNoise"></div></td>
+						</tr>
+					</table>
+				</div>
+			</td>
 		</tr>
 	</table>
 	
