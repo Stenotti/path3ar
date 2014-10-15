@@ -19,20 +19,50 @@
         padding: 5px;
         border: 1px solid #999;
       }
+	  #bottomPanel {
+        position: absolute;
+        bottom: 4%;
+        left: 2%;
+		right: 76%;
+        z-index: 5;
+        background-color: #fff;
+        padding: 5px;
+        border: 1px solid #999;
+      }
+	  #bottomSlider {
+        position: absolute;
+        bottom: 4%;
+        left: 30%;
+        right: 10%;
+        z-index: 5;
+        padding: 15px;
+		background:#fff;
+        border: 1px solid #999;
+      }
     </style>
+	<script src="customFormat.js"></script>
 	<link rel="stylesheet" href="//code.jquery.com/ui/1.11.1/themes/smoothness/jquery-ui.css">
 	<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.min.js"></script>
+	<script src="//code.jquery.com/ui/1.11.1/jquery-ui.js"></script>
 	<script src="http://code.highcharts.com/stock/highstock.js"></script>
     <script src="https://maps.googleapis.com/maps/api/js?v=3.exp&libraries=visualization"></script>
 	<script>
-		var samplesData = [];
+		var samplesData; // Lista di tutti i campionamenti
+		var samplesCoordsData = []; // Lista delle coordinate dei campionamenti
+		var samplesNoiseData = []; // Lista delle coordinate dei campionamenti
+		var samplesNoiseTimedData = [96]; // Lista delle coordinate dei campionamenti divisi per l'orario (ogni quarto d'ora)
+		var samplesLightData = []; // Lista delle coordinate dei campionamenti
+		var samplesLightTimedData = [96]; // Lista delle coordinate dei campionamenti divisi per l'orario (ogni quarto d'ora -> 24*4)
+		var samplesIndexes = [96];
 		var graphDataIds = [];
+		var invisibleMarkers = [];
 		var map, heatmap;
 		var bounds;
-		var zoomFluid;
-		var jsonData;
 		var currentCoord;
 		var marker, markerCircle;
+		var currentShown = -1; // 0 = Samples, 1 = Light, 2 = Noise
+		var hours = "00", minutes = "00";
+		var offsetMS;
 		
 		function Comparator(a,b){
 			if (a[0] < b[0]) return -1;
@@ -49,17 +79,76 @@
 			}
 			xmlhttp.onreadystatechange=function() {
 				if (xmlhttp.readyState==4 && xmlhttp.status==200) {
-					jsonData = JSON.parse(xmlhttp.responseText);
-					for (var i = 0; i < jsonData.length; i++) {
-						var jsonCoord = jsonData[i];
+					samplesData = JSON.parse(xmlhttp.responseText);
+					for (var i = 0; i < samplesData.length; i++) {
+						var jsonCoord = samplesData[i]; 
+						//[0]=id, [1]=lat, [2]=lng, [3]=timestamp, [4]=type1, [5]=value1, [6]=type2, [7]=value2
+						var jsonCoordLight, jsonCoordNoise;
+						var light, noise;
+						
+						if(jsonCoord[4] == 'LIGHT' && jsonCoord[6] == 'NOISE'){
+							light=parseFloat(jsonCoord[5]);
+							noise=parseFloat(jsonCoord[7]);
+						}
+						else if(jsonCoord[6] == 'LIGHT' && jsonCoord[4] == 'NOISE'){
+							light=parseFloat(jsonCoord[7]);
+							noise=parseFloat(jsonCoord[5]);
+						}
+						else{
+							alert("Error while getting data from database");
+						}
+						if(light<0 || light == 0.0001) 
+							light = 0.0;
+						if(light == 100.0001)
+							light = 100.0;
+						if(noise<0 || noise == 0.0001) 
+							noise = 0.0;
+						if(noise == 100.0001)
+							noise = 100.0;
+						var ms=Date.parse(jsonCoord[3])-offsetMS;
+						var date = new Date(ms);
+						var hourtime = date.customFormat("#DD#/#MM#/#YYYY# #hhh#:#mm#:#ss#");
+						var name = "LIGHT: "+light+", NOISE: "+noise+" "+hourtime;
 						var coord = new google.maps.LatLng(jsonCoord[1], jsonCoord[2]);
-						samplesData.push(coord);
+						samplesCoordsData.push(coord);
 						bounds.extend(coord);
+						addInvisibleMarker(map, name, coord);
 					}
+					toggleSamples(); // di default mostro i campionamenti
+					$('#wait').hide();
 				}
 			}
+			$('#wait').show();
 			xmlhttp.open("GET","getSamples.php",false);
 			xmlhttp.send();
+		}
+		
+		function addInvisibleMarker(map, name, latlng){
+			var image = new google.maps.MarkerImage(document.URL+'invisible-marker.png',
+				null, 
+				null,
+				new google.maps.Point(25, 25)
+			);
+			var mark = new google.maps.Marker({
+				map: map,
+				position: latlng,
+				title: name,
+				icon: image
+			});
+			google.maps.event.addListener(mark, 'click', function(){
+				clickFunction(mark.getPosition());
+			});
+			invisibleMarkers.push(mark);
+		}
+		
+		function setAllMap(map) {
+			for (var i = 0; i < invisibleMarkers.length; i++) {
+				invisibleMarkers[i].setMap(map);
+			}
+		}
+		
+		function setMarkerMap(index,map) {
+			invisibleMarkers[index].setMap(map);
 		}
 		
 		function distanceInMeters(lat1, lon1, lat2, lon2){
@@ -70,110 +159,18 @@
 		}
 				
 		function showGraph() {
-			graphDataIds = [];
-			var jsonObj = [];
-			for (var i = 0; i < jsonData.length; i++) {
-				var jsonCoord = jsonData[i];
+			graphData = [];
+			for (var i = 0; i < samplesData.length; i++) {
+				var jsonCoord = samplesData[i];
 				var radius = document.getElementById('radiusM').value;
 				var dist = distanceInMeters(currentCoord.lat(), currentCoord.lng(), jsonCoord[1], jsonCoord[2]);
 				if(dist <= radius){
-					graphDataIds.push(jsonCoord[0]); // Inserisco l'id del sample
+					graphData.push(jsonCoord); // Inserisco il sample nell'array graphData
 				}
 			}
-		
-			if (window.XMLHttpRequest) {
-				// code for IE7+, Firefox, Chrome, Opera, Safari
-				xmlhttp=new XMLHttpRequest();
-			} else { // code for IE6, IE5
-				xmlhttp=new ActiveXObject("Microsoft.XMLHTTP");
-			}
-			xmlhttp.onreadystatechange=function() {
-				if (xmlhttp.readyState==4 && xmlhttp.status==200) {
-					var labelData = JSON.parse(xmlhttp.responseText);
-					var lightData = [];
-					var noiseData = [];
-					for (var i = 0; i < labelData.length; i++) {
-						var label = labelData[i];
-						var date = new Date();
-						var offsetMS = date.getTimezoneOffset()*60*1000;
-						var ms=Date.parse(label[2])-offsetMS;
-						var value = parseFloat(label[1]);
-						if(value<0 || value == 0.0001) 
-							value = 0.0;
-						if(value == 100.0001)
-							value = 100.0;
-						var toAdd = [];
-						toAdd.push(ms);
-						toAdd.push(value);
-						if(label[0] == "LIGHT")
-							lightData.push(toAdd);
-						else
-							noiseData.push(toAdd);
-					}
-					lightData = lightData.sort(Comparator);
-					noiseData = noiseData.sort(Comparator);
-					
-					$('#numSamples').html("Number of samples: "+lightData.length);
-					
-					Highcharts.setOptions({
-						global : {
-							useUTC : false
-						}
-					});
-					$('#graph').highcharts('StockChart', {
-						rangeSelector: {
-							selected: 5,
-							allButtonsEnabled: true
-						},
-						chart: {
-							zoomType: 'xy'
-						},
-						title: {
-							text: 'LIGHT/NOISE'
-						},
-						xAxis: {
-							title: {
-								text: 'Timestamp'
-							},
-							tickmarkPlacement: 'on'
-						},
-						yAxis: {
-							title: {
-								text: 'Valore',
-							},
-							min: 0,
-							max: 100
-						},
-						plotOptions: {
-							series: {
-								turboThreshold: 0
-							}
-						},
-						series: [{
-							name: 'LIGHT',
-							data: lightData
-						},{
-							name: 'NOISE',
-							data: noiseData
-						}]
-					});
-					
-					$('#wait').hide();
-					var dest = 0;
-					if ($('#graph').offset().top > $(document).height() - $(window).height()) {
-						dest = $(document).height() - $(window).height();
-					} else {
-						dest = $('#graph').offset().top;
-					}
-					//go to destination
-					$('html,body').animate({
-						scrollTop: dest
-					}, 2000, 'swing');
-				}
-			}
-			if(graphDataIds.length == 0){
+			if(graphData.length == 0){
 				$('#numSamples').html("Number of samples: 0");
-				alert("There are no samples in this radius");
+				//alert("There are no samples in this radius");
 				var chart = $('#graph').highcharts();
 				if(chart != null){
 					while(chart.series.length > 0)
@@ -181,64 +178,296 @@
 				}
 			}
 			else{
-				xmlhttp.open("POST","showGraph.php",true);
-				xmlhttp.setRequestHeader("Content-type","application/x-www-form-urlencoded");
-				xmlhttp.send("ids="+JSON.stringify(graphDataIds));
-				$('#wait').show();
+				var lightData = [];
+				var noiseData = [];
+				for (var i = 0; i < graphData.length; i++) {
+					var label = graphData[i];
+					//[0]=id, [1]=lat, [2]=lng, [3]=timestamp, [4]=type1, [5]=value1, [6]=type2, [7]=value2
+					var date = new Date();
+					var ms=Date.parse(label[3])-offsetMS;
+					var value1 = parseFloat(label[5]);
+					var value2 = parseFloat(label[7]);
+					if(value1<0 || value1 == 0.0001) 
+						value1 = 0.0;
+					if(value1 == 100.0001)
+						value1 = 100.0;
+					if(value2<0 || value2 == 0.0001) 
+						value2 = 0.0;
+					if(value2 == 100.0001)
+						value2 = 100.0;
+					var toAddLight = [];
+					var toAddNoise = [];
+					toAddLight.push(ms);
+					toAddNoise.push(ms);
+					if(label[4] == 'LIGHT' && label[6] == 'NOISE'){
+						toAddLight.push(value1);
+						toAddNoise.push(value2);
+					}
+					else if(label[6] == 'LIGHT' && label[4] == 'NOISE'){
+						toAddLight.push(value2);
+						toAddNoise.push(value1);
+					}
+					lightData.push(toAddLight);
+					noiseData.push(toAddNoise);
+				}
+				lightData = lightData.sort(Comparator);
+				noiseData = noiseData.sort(Comparator);
+				
+				$('#numSamples').html("Number of samples: "+lightData.length);
+				
+				Highcharts.setOptions({
+					global : {
+						useUTC : false
+					}
+				});
+				$('#graph').highcharts('StockChart', {
+					rangeSelector: {
+						selected: 5,
+						allButtonsEnabled: true
+					},
+					chart: {
+						zoomType: 'xy'
+					},
+					title: {
+						text: 'LIGHT/NOISE'
+					},
+					xAxis: {
+						title: {
+							text: 'Timestamp'
+						},
+						tickmarkPlacement: 'on'
+					},
+					yAxis: {
+						title: {
+							text: 'Valore',
+						},
+						min: 0,
+						max: 100
+					},
+					plotOptions: {
+						series: {
+							turboThreshold: 0
+						}
+					},
+					series: [{
+						name: 'LIGHT',
+						data: lightData
+					},{
+						name: 'NOISE',
+						data: noiseData
+					}]
+				});
+				
+				var dest = 0;
+				if ($('#graph').offset().top > $(document).height() - $(window).height()) {
+					dest = $(document).height() - $(window).height();
+				} else {
+					dest = $('#graph').offset().top;
+				}
+				//go to destination
+				$('html,body').animate({
+					scrollTop: dest
+				}, 2000, 'swing');
 			}
 		}
 
 		function initialize() {
 			bounds = new google.maps.LatLngBounds();
-			getSamples();
 			var mapOptions = {
-				//zoom: 13,
-				//center: new google.maps.LatLng(45.387590, 11.895832),
 				mapTypeId: google.maps.MapTypeId.SATELLITE
 			};
 			map = new google.maps.Map(document.getElementById('map-canvas'), mapOptions);
-			var pointArray = new google.maps.MVCArray(samplesData);
-
-			heatmap = new google.maps.visualization.HeatmapLayer({
-				data: pointArray
-			});
+			heatmap = new google.maps.visualization.HeatmapLayer();
 			heatmap.setMap(map);
-			map.fitBounds(bounds);
+			heatmap.set('maxIntensity', 8);
 			
-			google.maps.event.addListener(map, "click", function(event) {
-				currentCoord = event.latLng;
-				var lat = event.latLng.lat();
-				var lng = event.latLng.lng();
-				map.panTo(currentCoord);
-				var zoom = map.getZoom();
-				if(zoom < 13)
-					zoom = 13;
-				setTimeout("map.setZoom("+zoom+")",500);
-				if(marker != null){
-					marker.setMap(null);
-					markerCircle.setMap(null);
-				}
-				marker = new google.maps.Marker({
-					position: currentCoord,
-					map: map,
-					title: "Position: "+lat+", "+lng
-				});
-				var circleOptions = {
-				  strokeColor: '#FF0000',
-				  strokeOpacity: 0.8,
-				  strokeWeight: 2,
-				  fillColor: '#FF0000',
-				  fillOpacity: 0.35,
-				  map: map,
-				  center: currentCoord,
-				  radius: parseFloat(document.getElementById('radiusM').value)
-				};
-				// Add the circle for this city to the map.
-				markerCircle = new google.maps.Circle(circleOptions);
-				showGraph();
-			});
+			var date = new Date();
+			offsetMS = date.getTimezoneOffset()*60*1000;
+					
+			getSamples();
+						
+			createTimedArrays();
+			
+			map.fitBounds(bounds);
 		}
 		
+		function clickFunction(coord){
+			currentCoord = coord;
+			var lat = coord.lat();
+			var lng = coord.lng();
+			map.panTo(coord);
+			var zoom = map.getZoom();
+			if(zoom < 13)
+				zoom = 13;
+			setTimeout("map.setZoom("+zoom+")",500);
+			if(marker != null){
+				marker.setMap(null);
+				markerCircle.setMap(null);
+			}
+			marker = new google.maps.Marker({
+				position: coord,
+				map: map,
+				title: "Position: "+lat+", "+lng
+			});
+			var circleOptions = {
+			  strokeColor: '#FF0000',
+			  strokeOpacity: 0.8,
+			  strokeWeight: 2,
+			  fillColor: '#FF0000',
+			  fillOpacity: 0.35,
+			  map: map,
+			  center: currentCoord,
+			  radius: parseFloat(document.getElementById('radiusM').value)
+			};
+			// Add the circle for this city to the map.
+			markerCircle = new google.maps.Circle(circleOptions);
+			showGraph();
+		}
+		
+		jQuery(function() {
+			jQuery('#slider-time').slider({
+				range: false,
+				min: 0,
+				max: 1440,
+				step: 15,
+				slide: function(e, ui) {
+					hours = Math.floor(ui.value / 60);
+					minutes = ui.value - (hours * 60);
+
+					if(hours < 10) hours = '0' + hours;
+					if(minutes.length < 10) minutes = '0' + minutes;
+					if(minutes == 0) minutes = '00';
+					$('#time').html(hours+':'+minutes+" - "+hours+':'+(parseInt(minutes)+14));
+					
+					if(currentShown == 1 || currentShown == 2){
+						updateDataInTimeRange();
+					}
+				}
+			});
+		});
+		
+		function getLightFromJson(json){
+			var light;
+			if(json[4] == 'LIGHT' && json[6] == 'NOISE'){
+				light = parseFloat(json[5]);
+			}
+			else if(json[6] == 'LIGHT' && json[4] == 'NOISE'){
+				light = parseFloat(json[7]);
+			}
+			if(light<0 || light == 0.0001) 
+				light = 0.0;
+			if(light == 100.0001)
+				light = 100.0;
+			return light;
+		}
+		function getNoiseFromJson(json){
+			var noise;
+			if(json[4] == 'LIGHT' && json[6] == 'NOISE'){
+				noise = parseFloat(json[7]);
+			}
+			else if(json[6] == 'LIGHT' && json[4] == 'NOISE'){
+				noise = parseFloat(json[5]);
+			}
+			if(noise<0 || noise == 0.0001) 
+				noise = 0.0;
+			if(noise == 100.0001)
+				noise = 100.0;
+			return noise;
+		}
+		
+		function createTimedArrays(){
+			for(var i=0; i<96; i++) {
+				samplesLightTimedData[i] = [];
+				samplesNoiseTimedData[i] = [];
+				samplesIndexes[i] = [];
+			}
+			for(var i=0; i<samplesData.length; i++){
+				var jsonCoord = samplesData[i];
+				var ms=Date.parse(jsonCoord[3])-offsetMS;
+				var date = new Date(ms);
+				var hourtime = date.customFormat("#hhh#:#mm#:#ss#");
+				var sampleHour = hourtime.split(":")[0];
+				var sampleMins = hourtime.split(":")[1];
+				var arrayIndex = sampleHour*4 + parseInt(sampleMins/15);
+				
+				var coord = new google.maps.LatLng(jsonCoord[1], jsonCoord[2]);
+				var light = getLightFromJson(jsonCoord);
+				var noise = getNoiseFromJson(jsonCoord);
+				
+				var checkAdd = true;
+				for(var j=0; j<samplesIndexes[arrayIndex].length; j++){
+					var toCheck = samplesIndexes[arrayIndex][j];
+					var d = distanceInMeters(samplesCoordsData[i].lat(),samplesCoordsData[i].lng(),
+											 samplesCoordsData[toCheck].lat(),samplesCoordsData[toCheck].lng());
+					if(d<10){
+						checkAdd = false;
+						var light2 = getLightFromJson(samplesData[toCheck]);
+						var noise2 = getNoiseFromJson(samplesData[toCheck]);
+						var w1 = light2 / 10;
+						var w2 = noise2 / 10;
+						samplesLightTimedData[arrayIndex][j].weight = (samplesLightTimedData[arrayIndex][j].weight + w1)/2;
+						samplesNoiseTimedData[arrayIndex][j].weight = (samplesNoiseTimedData[arrayIndex][j].weight + w2)/2;
+					}
+				}
+				if(checkAdd){
+					samplesIndexes[arrayIndex].push(i);
+					samplesLightTimedData[arrayIndex].push({location:coord, weight: light/10});
+					samplesNoiseTimedData[arrayIndex].push({location:coord, weight: noise/10});
+				}
+			}
+		}
+		
+		function updateDataInTimeRange(){
+			if(currentShown == 1 || currentShown == 2){
+				heatmap.setData([]);
+				setAllMap(null);
+				var arrayIndex = parseInt(hours)*4 + parseInt(minutes/15);
+				for(var i=0; i<samplesIndexes[arrayIndex].length; i++){
+					setMarkerMap(samplesIndexes[arrayIndex][i], map);
+				}
+				var dataToSet;
+				if(currentShown == 1){
+					dataToSet = new google.maps.MVCArray(samplesLightTimedData[arrayIndex]);
+				}
+				else if(currentShown == 2){
+					dataToSet = new google.maps.MVCArray(samplesNoiseTimedData[arrayIndex]);
+				}
+				heatmap.setData(dataToSet);
+			}
+		}
+		
+		function toggleSamples() {
+			document.getElementById("bottomSlider").style.display = "none";
+			if(currentShown != 0){
+				heatmap.setData([]);
+				setAllMap(map);
+				var pointArray = new google.maps.MVCArray(samplesCoordsData);
+				heatmap.setData(pointArray);
+			}
+			currentShown = 0;
+		}
+		
+		function toggleLight() {
+			removeMarker();
+			document.getElementById("bottomSlider").style.display = "block";
+			if(currentShown != 1){
+				currentShown = 1;
+				heatmap.setData([]);
+				setAllMap(null);
+				updateDataInTimeRange();
+			}
+		}
+		
+		function toggleNoise() {
+			removeMarker();
+			document.getElementById("bottomSlider").style.display = "block";
+			if(currentShown != 2){
+				currentShown = 2;
+				heatmap.setData([]);
+				setAllMap(null);
+				updateDataInTimeRange();
+			}
+		}
 
 		function toggleHeatmap() {
 			heatmap.setMap(heatmap.getMap() ? null : map);
@@ -265,7 +494,7 @@
 		}
 
 		function changeRadius() {
-		  heatmap.set('radius', heatmap.get('radius') ? null : 20);
+			heatmap.set('radius', heatmap.get('radius') ? null : 20);
 		}
 
 		function changeOpacity() {
@@ -293,6 +522,16 @@
       <button onclick="changeOpacity()">Change opacity</button>
       <button onclick="removeMarker()">Remove marker</button>
     </div>
+	<div id="bottomPanel">
+      <button onclick="toggleSamples()"><font size=5>Samples</font></button>
+      <button onclick="toggleLight()"><font size=5>Light</font></button>
+      <button onclick="toggleNoise()"><font size=5>Noise</font></button>
+	</div>
+	<div id="bottomSlider" >
+		<center><b>Time range: <label id="time">00:00 - 00:14</label></b></center><br>
+		<div id="slider-time"></div>
+	</div>
+	
     <div id="map-canvas" ></div>
 	<br><center><b><div id="numSamples"></div></b></center>
 	<div id="graph" style="width:100%; height:400px;"></div>
