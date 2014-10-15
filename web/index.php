@@ -287,6 +287,17 @@
 			});
 			lightGraph = $('#graphLight').highcharts();
 			noiseGraph = $('#graphNoise').highcharts();
+			
+			$('#graphLightToggle').click(function() {
+				  $('#graphLight').slideToggle();
+				  console.log($(this)+" - "+$(this).next());
+				  return false;
+			});
+			$('#graphNoiseToggle').click(function() {
+				  $('#graphNoise').slideToggle();
+				  console.log($(this)+" - "+$(this).next());
+				  return false;
+			});
 		}
 		
 		function clickFunction(coord){
@@ -484,7 +495,7 @@
 				document.getElementById("removeMarkerId").style.display = "none";
 			}
 		}
-
+		
 		google.maps.event.addDomListener(window, 'load', initialize);
 
     </script>
@@ -512,17 +523,11 @@
 			</td>
 			<td width="50%">
 				<div class="scrollable">
-					<table width="100%" >
-						<tr>
-							<td><center><b><div id="numSamples"></div></b></center></td>
-						</tr>
-						<tr width="100%" height="50%">
-							<td><div id="graphLight"></div></td>
-						</tr>
-						<tr width="100%" height="50%">
-							<td><div id="graphNoise"></div></td>
-						</tr>
-					</table>
+					<center><b><div id="numSamples"></div></b></center>
+					<button class="myButton" id="graphLightToggle">Show/Hide Light Graph</button>
+					<div id="graphLight"></div><br>
+					<button class="myButton" id="graphNoiseToggle">Show/Hide Noise Graph</button>
+					<div id="graphNoise"></div>
 				</div>
 			</td>
 		</tr>
