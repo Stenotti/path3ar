@@ -168,107 +168,128 @@
 					graphData.push(jsonCoord); // Inserisco il sample nell'array graphData
 				}
 			}
-			if(graphData.length == 0){
-				$('#numSamples').html("Number of samples: 0");
-				//alert("There are no samples in this radius");
-				var chart = $('#graph').highcharts();
-				if(chart != null){
-					while(chart.series.length > 0)
-						chart.series[0].remove(true);
+			var lightData = [];
+			var noiseData = [];
+			for (var i = 0; i < graphData.length; i++) {
+				var label = graphData[i];
+				//[0]=id, [1]=lat, [2]=lng, [3]=timestamp, [4]=type1, [5]=value1, [6]=type2, [7]=value2
+				var date = new Date();
+				var ms=Date.parse(label[3])-offsetMS;
+				var value1 = parseFloat(label[5]);
+				var value2 = parseFloat(label[7]);
+				if(value1<0 || value1 == 0.0001) 
+					value1 = 0.0;
+				if(value1 == 100.0001)
+					value1 = 100.0;
+				if(value2<0 || value2 == 0.0001) 
+					value2 = 0.0;
+				if(value2 == 100.0001)
+					value2 = 100.0;
+				var toAddLight = [];
+				var toAddNoise = [];
+				toAddLight.push(ms);
+				toAddNoise.push(ms);
+				if(label[4] == 'LIGHT' && label[6] == 'NOISE'){
+					toAddLight.push(value1);
+					toAddNoise.push(value2);
 				}
+				else if(label[6] == 'LIGHT' && label[4] == 'NOISE'){
+					toAddLight.push(value2);
+					toAddNoise.push(value1);
+				}
+				lightData.push(toAddLight);
+				noiseData.push(toAddNoise);
 			}
-			else{
-				var lightData = [];
-				var noiseData = [];
-				for (var i = 0; i < graphData.length; i++) {
-					var label = graphData[i];
-					//[0]=id, [1]=lat, [2]=lng, [3]=timestamp, [4]=type1, [5]=value1, [6]=type2, [7]=value2
-					var date = new Date();
-					var ms=Date.parse(label[3])-offsetMS;
-					var value1 = parseFloat(label[5]);
-					var value2 = parseFloat(label[7]);
-					if(value1<0 || value1 == 0.0001) 
-						value1 = 0.0;
-					if(value1 == 100.0001)
-						value1 = 100.0;
-					if(value2<0 || value2 == 0.0001) 
-						value2 = 0.0;
-					if(value2 == 100.0001)
-						value2 = 100.0;
-					var toAddLight = [];
-					var toAddNoise = [];
-					toAddLight.push(ms);
-					toAddNoise.push(ms);
-					if(label[4] == 'LIGHT' && label[6] == 'NOISE'){
-						toAddLight.push(value1);
-						toAddNoise.push(value2);
-					}
-					else if(label[6] == 'LIGHT' && label[4] == 'NOISE'){
-						toAddLight.push(value2);
-						toAddNoise.push(value1);
-					}
-					lightData.push(toAddLight);
-					noiseData.push(toAddNoise);
+			lightData = lightData.sort(Comparator);
+			noiseData = noiseData.sort(Comparator);
+			
+			$('#numSamples').html("Number of samples: "+lightData.length);
+			
+			Highcharts.setOptions({
+				global : {
+					useUTC : false
 				}
-				lightData = lightData.sort(Comparator);
-				noiseData = noiseData.sort(Comparator);
-				
-				$('#numSamples').html("Number of samples: "+lightData.length);
-				
-				Highcharts.setOptions({
-					global : {
-						useUTC : false
-					}
-				});
-				$('#graph').highcharts('StockChart', {
-					rangeSelector: {
-						selected: 5,
-						allButtonsEnabled: true
-					},
-					chart: {
-						zoomType: 'xy'
-					},
+			});
+			$('#graphLight').highcharts('StockChart', {
+				rangeSelector: {
+					selected: 5,
+					allButtonsEnabled: true
+				},
+				chart: {
+					zoomType: 'x'
+				},
+				title: {
+					text: 'LIGHT'
+				},
+				xAxis: {
 					title: {
-						text: 'LIGHT/NOISE'
+						text: 'Timestamp'
 					},
-					xAxis: {
-						title: {
-							text: 'Timestamp'
-						},
-						tickmarkPlacement: 'on'
+					tickmarkPlacement: 'on'
+				},
+				yAxis: {
+					title: {
+						text: 'Valore',
 					},
-					yAxis: {
-						title: {
-							text: 'Valore',
-						},
-						min: 0,
-						max: 100
+					min: 0,
+					max: 100
+				},
+				plotOptions: {
+					series: {
+						turboThreshold: 0
+					}
+				},
+				series: [{
+					type: 'column',
+					name: 'LIGHT',
+					data: lightData
+				}]
+			});
+			$('#graphNoise').highcharts('StockChart', {
+				rangeSelector: {
+					selected: 5,
+					allButtonsEnabled: true
+				},
+				chart: {
+					zoomType: 'x'
+				},
+				title: {
+					text: 'NOISE'
+				},
+				xAxis: {
+					title: {
+						text: 'Timestamp'
 					},
-					plotOptions: {
-						series: {
-							turboThreshold: 0
-						}
+					tickmarkPlacement: 'on'
+				},
+				yAxis: {
+					title: {
+						text: 'Valore',
 					},
-					series: [{
-						name: 'LIGHT',
-						data: lightData
-					},{
-						name: 'NOISE',
-						data: noiseData
-					}]
-				});
-				
-				var dest = 0;
-				if ($('#graph').offset().top > $(document).height() - $(window).height()) {
-					dest = $(document).height() - $(window).height();
-				} else {
-					dest = $('#graph').offset().top;
-				}
-				//go to destination
-				$('html,body').animate({
-					scrollTop: dest
-				}, 2000, 'swing');
+					min: 0,
+					max: 100
+				},
+				plotOptions: {
+					series: {
+						turboThreshold: 0
+					}
+				},
+				series: [{
+					type: 'column',
+					name: 'NOISE',
+					data: noiseData
+				}]
+			});
+			var dest = 0;
+			if ($('#graphLight').offset().top > $(document).height() - $(window).height()) {
+				dest = $(document).height() - $(window).height();
+			} else {
+				dest = $('#graphLight').offset().top;
 			}
+			//go to destination
+			$('html,body').animate({
+				scrollTop: dest
+			}, 2000, 'swing');
 		}
 
 		function initialize() {
@@ -534,7 +555,13 @@
 	
     <div id="map-canvas" ></div>
 	<br><center><b><div id="numSamples"></div></b></center>
-	<div id="graph" style="width:100%; height:400px;"></div>
+	<table width="100%">
+		<tr>
+			<td width="48%"><div id="graphLight"></div></td>
+			<td width="48%"><div id="graphNoise"></div></td>
+		</tr>
+	</table>
+	
 	<div id="wait" style="display:none;width:128px;height:128px;border:0px; position:absolute;top:40%;left:45%;padding:2px;">
 		<img src='loader.gif' width="100" height="100" /><br>
 		<font color="#fff">Caricamento dati</font>
