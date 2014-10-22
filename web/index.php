@@ -15,17 +15,22 @@
 		var sliderStep = 60;
 		var numberOfTimeRanges = 1440 / sliderStep;
 		var samplesData; // Lista di tutti i campionamenti
-		var samplesCoordsData = []; // Lista delle coordinate dei campionamenti
-		var samplesNoiseData = []; // Lista delle coordinate dei campionamenti
-		var samplesNoiseTimedData = [numberOfTimeRanges]; // Lista delle coordinate dei campionamenti divisi per l'orario (ogni quarto d'ora)
-		var samplesLightData = []; // Lista delle coordinate dei campionamenti
-		var samplesLightTimedData = [numberOfTimeRanges]; // Lista delle coordinate dei campionamenti divisi per l'orario (ogni quarto d'ora -> 24*4)
-		var samplesIndexes = [numberOfTimeRanges];
+		var samplesCoordsData = []; // Lista delle coordinate dei campionamenti per la mappa
+		var samplesIndexes = [numberOfTimeRanges]; // Lista degli indici utilizzata per mostrare i campionamenti divisi per l'orario
+		
+		var samplesNoiseTimedData = [numberOfTimeRanges]; // Lista dei valori di rumorosità dei campionamenti divisi per l'orario (ogni quarto d'ora) -> per la mappa
+		var samplesTimedDataGraph = [numberOfTimeRanges]; // Lista dei valori di rumorosità dei campionamenti divisi per l'orario (ogni quarto d'ora) -> per il grafico
+		
+		var samplesLightTimedData = [numberOfTimeRanges]; // Lista dei valori di lumonosità dei campionamenti divisi per l'orario (ogni quarto d'ora -> 24*4) -> per la mappa
+		//var samplesLightTimedDataGraph = [numberOfTimeRanges]; // Lista dei valori di lumonosità dei campionamenti divisi per l'orario (ogni quarto d'ora -> 24*4) -> per il grafico
+		
+		var currentArrayIndex;
+		
 		var graphDataIds = [];
 		var invisibleMarkers = [];
 		var map, heatmap;
 		var bounds;
-		var currentCoord;
+		var currentCoord = null;
 		var marker, markerCircle;
 		var currentShown = -1; // 0 = Samples, 1 = Light, 2 = Noise
 		var hours = "00", minutes = "00";
@@ -63,14 +68,15 @@
 						var name = "LIGHT: "+light+", NOISE: "+noise+" "+hourtime;
 						var coord = new google.maps.LatLng(jsonCoord[1], jsonCoord[2]);
 						samplesCoordsData.push(coord);
+						
 						bounds.extend(coord);
 						addInvisibleMarker(map, name, coord);
 					}
 					toggleSamples(); // di default mostro i campionamenti
-					$('#wait').hide();
+					//$('#wait').hide();
 				}
 			}
-			$('#wait').show();
+			//$('#wait').show();
 			xmlhttp.open("GET","getSamples.php",false);
 			xmlhttp.send();
 		}
@@ -111,82 +117,95 @@
 		}
 				
 		function showGraph() {
-			graphData = [];
-			for (var i = 0; i < samplesData.length; i++) {
-				var jsonCoord = samplesData[i];
-				var radius = document.getElementById('radiusM').value;
-				var dist = distanceInMeters(currentCoord.lat(), currentCoord.lng(), jsonCoord[1], jsonCoord[2]);
-				if(dist <= radius){
-					graphData.push(jsonCoord); // Inserisco il sample nell'array graphData
-				}
-			}
-			var lightData = [];
-			var noiseData = [];
-			var plotXLines = [];
-			var lastDate = 0;
-			for (var i = 0; i < graphData.length; i++) {
-				var label = graphData[i];
-				//[0]=id, [1]=lat, [2]=lng, [3]=timestamp, [4]=type1, [5]=value1, [6]=type2, [7]=value2
-				var ms=Date.parse(label[3])-offsetMS;
-				var date = new Date(ms);
-				var hourtime = date.customFormat("#DD#/#MM#/#YYYY#");
-				if(lastDate == 0 || lastDate != hourtime){
-					plotXLines.push(ms);
-					lastDate = hourtime;
-				}
+			if(currentCoord != null){
+				graphData = [];
+				var samplesDataTemp;
+				if(currentShown == 0) samplesDataTemp = samplesData;
+				else if(currentShown == 1 || currentShown == 2) samplesDataTemp = samplesTimedDataGraph[currentArrayIndex];
 				
-				var light = getLightFromJson(label);
-				var noise = getNoiseFromJson(label);
-				var toAddLight = [];
-				var toAddNoise = [];
-				toAddLight.push(ms);
-				toAddLight.push(light);
-				toAddNoise.push(ms);
-				toAddNoise.push(noise);
-				lightData.push(toAddLight);
-				noiseData.push(toAddNoise);
-			}
-			lightData = lightData.sort(Comparator);
-			noiseData = noiseData.sort(Comparator);
-			
-			$('#numSamples').html("Number of samples: "+lightData.length);
-			
-			lightGraph.series[0].setData(lightData);
-			noiseGraph.series[0].setData(lightData);
-			lightGraph.xAxis[0].setExtremes();
-			noiseGraph.xAxis[0].setExtremes();
-			
-			lightGraph.xAxis[0].removePlotLine('light-plotLine');
-			noiseGraph.xAxis[0].removePlotLine('noise-plotLine');
-			for(var i=0; i<plotXLines.length; i++){
-				var d = new Date(plotXLines[i]);
-				var datetext = d.customFormat("#DD#/#MM#");
-				lightGraph.xAxis[0].addPlotLine({
-					id: 'light-plotLine',
-					value: plotXLines[i],
-					width: 1,
-					color: 'green',
-					dashStyle: 'dash'/*,
-					label: {
-						text: datetext,
-						align: 'center',
-						y: 12,
-						x: 0
-					}*/
-				});
-				noiseGraph.xAxis[0].addPlotLine({
-					id: 'noise-plotLine',
-					value: plotXLines[i],
-					width: 1,
-					color: 'green',
-					dashStyle: 'dash'/*,
-					label: {
-						text: datetext,
-						align: 'center',
-						y: 12,
-						x: 0
-					}*/
-				});
+				for (var i = 0; i < samplesDataTemp.length; i++) {
+					var jsonCoord = samplesDataTemp[i];
+					var radius = document.getElementById('radiusM').value;
+					var dist = distanceInMeters(currentCoord.lat(), currentCoord.lng(), jsonCoord[1], jsonCoord[2]);
+					if(dist <= radius){
+						graphData.push(jsonCoord); // Inserisco il sample nell'array graphData
+					}
+				}
+				if(graphData.length != 0){
+					var lightData = [];
+					var noiseData = [];
+					var plotXLines = [];
+					var lastDate = 0;
+					for (var i = 0; i < graphData.length; i++) {
+						var label = graphData[i];
+						//[0]=id, [1]=lat, [2]=lng, [3]=timestamp, [4]=type1, [5]=value1, [6]=type2, [7]=value2
+						var ms=Date.parse(label[3])-offsetMS;
+						var date = new Date(ms);
+						var hourtime = date.customFormat("#DD#/#MM#/#YYYY#");
+						if(lastDate == 0 || lastDate != hourtime){
+							plotXLines.push(ms);
+							lastDate = hourtime;
+						}
+						
+						var light = getLightFromJson(label);
+						var noise = getNoiseFromJson(label);
+						var toAddLight = [];
+						var toAddNoise = [];
+						toAddLight.push(ms);
+						toAddLight.push(light);
+						toAddNoise.push(ms);
+						toAddNoise.push(noise);
+						lightData.push(toAddLight);
+						noiseData.push(toAddNoise);
+					}
+					lightData = lightData.sort(Comparator);
+					noiseData = noiseData.sort(Comparator);
+					
+					$('#numSamples').html("Number of samples: "+lightData.length);
+					
+					lightGraph.series[0].setData(lightData);
+					noiseGraph.series[0].setData(noiseData);
+					lightGraph.xAxis[0].setExtremes();
+					noiseGraph.xAxis[0].setExtremes();
+					
+					lightGraph.xAxis[0].removePlotLine('light-plotLine');
+					noiseGraph.xAxis[0].removePlotLine('noise-plotLine');
+					for(var i=0; i<plotXLines.length; i++){
+						var d = new Date(plotXLines[i]);
+						var datetext = d.customFormat("#DD#/#MM#");
+						lightGraph.xAxis[0].addPlotLine({
+							id: 'light-plotLine',
+							value: plotXLines[i],
+							width: 1,
+							color: 'green',
+							dashStyle: 'dash'/*,
+							label: {
+								text: datetext,
+								align: 'center',
+								y: 12,
+								x: 0
+							}*/
+						});
+						noiseGraph.xAxis[0].addPlotLine({
+							id: 'noise-plotLine',
+							value: plotXLines[i],
+							width: 1,
+							color: 'green',
+							dashStyle: 'dash'/*,
+							label: {
+								text: datetext,
+								align: 'center',
+								y: 12,
+								x: 0
+							}*/
+						});
+					}
+				}
+				else{
+					$('#numSamples').html("Number of samples: 0");
+					lightGraph.series[0].setData([]);
+					noiseGraph.series[0].setData([]);
+				}
 			}
 		}
 
@@ -351,6 +370,7 @@
 					
 					if(currentShown == 1 || currentShown == 2){
 						updateDataInTimeRange();
+						showGraph();
 					}
 				}
 			});
@@ -388,7 +408,9 @@
 		function createTimedArrays(){
 			for(var i=0; i<numberOfTimeRanges; i++) {
 				samplesLightTimedData[i] = [];
+				samplesTimedDataGraph[i] = [];
 				samplesNoiseTimedData[i] = [];
+				//samplesNoiseTimedDataGraph[i] = [];
 				samplesIndexes[i] = [];
 			}
 			for(var i=0; i<samplesData.length; i++){
@@ -403,6 +425,8 @@
 				var coord = new google.maps.LatLng(jsonCoord[1], jsonCoord[2]);
 				var light = getLightFromJson(jsonCoord);
 				var noise = getNoiseFromJson(jsonCoord);
+				
+				samplesTimedDataGraph[arrayIndex].push(jsonCoord);
 				
 				var checkAdd = true;
 				for(var j=0; j<samplesIndexes[arrayIndex].length; j++){
@@ -425,22 +449,23 @@
 					samplesNoiseTimedData[arrayIndex].push({location:coord, weight: noise/10});
 				}
 			}
+			
 		}
 		
 		function updateDataInTimeRange(){
 			if(currentShown == 1 || currentShown == 2){
 				heatmap.setData([]);
 				setAllMap(null);
-				var arrayIndex = parseInt(hours)*(60/sliderStep) + parseInt(minutes/sliderStep);
-				for(var i=0; i<samplesIndexes[arrayIndex].length; i++){
-					setMarkerMap(samplesIndexes[arrayIndex][i], map);
+				currentArrayIndex = parseInt(hours)*(60/sliderStep) + parseInt(minutes/sliderStep);
+				for(var i=0; i<samplesIndexes[currentArrayIndex].length; i++){
+					setMarkerMap(samplesIndexes[currentArrayIndex][i], map);
 				}
 				var dataToSet;
 				if(currentShown == 1){
-					dataToSet = new google.maps.MVCArray(samplesLightTimedData[arrayIndex]);
+					dataToSet = new google.maps.MVCArray(samplesLightTimedData[currentArrayIndex]);
 				}
 				else if(currentShown == 2){
-					dataToSet = new google.maps.MVCArray(samplesNoiseTimedData[arrayIndex]);
+					dataToSet = new google.maps.MVCArray(samplesNoiseTimedData[currentArrayIndex]);
 				}
 				heatmap.setData(dataToSet);
 			}
@@ -452,25 +477,27 @@
 			$("#noiseButton").removeClass("buttonActive");
 			document.getElementById("bottomSlider").style.display = "none";
 			if(currentShown != 0){
+				currentShown = 0;
 				heatmap.setData([]);
 				setAllMap(map);
 				var pointArray = new google.maps.MVCArray(samplesCoordsData);
 				heatmap.setData(pointArray);
+				if(currentCoord != null) showGraph();
 			}
-			currentShown = 0;
 		}
 		
 		function toggleLight() {
 			$("#samplesButton").removeClass("buttonActive");
 			$("#lightButton").addClass("buttonActive");
 			$("#noiseButton").removeClass("buttonActive");
-			removeMarker();
+			//removeMarker();
 			document.getElementById("bottomSlider").style.display = "block";
 			if(currentShown != 1){
 				currentShown = 1;
 				heatmap.setData([]);
 				setAllMap(null);
 				updateDataInTimeRange();
+				if(currentCoord != null) showGraph();
 			}
 		}
 		
@@ -478,13 +505,14 @@
 			$("#samplesButton").removeClass("buttonActive");
 			$("#lightButton").removeClass("buttonActive");
 			$("#noiseButton").addClass("buttonActive");
-			removeMarker();
+			//removeMarker();
 			document.getElementById("bottomSlider").style.display = "block";
 			if(currentShown != 2){
 				currentShown = 2;
 				heatmap.setData([]);
 				setAllMap(null);
 				updateDataInTimeRange();
+				if(currentCoord != null) showGraph();
 			}
 		}
 		
@@ -493,6 +521,7 @@
 				marker.setMap(null);
 				markerCircle.setMap(null);
 				document.getElementById("removeMarkerId").style.display = "none";
+				currentCoord = null;
 			}
 		}
 		
@@ -533,9 +562,9 @@
 		</tr>
 	</table>
 	
-	<div id="wait" style="display:none;width:128px;height:128px;border:0px; position:absolute;top:40%;left:45%;padding:2px;">
+	<!-- <div id="wait" style="display:none;width:128px;height:128px;border:0px; position:absolute;top:40%;left:45%;padding:2px;">
 		<img src='loader.gif' width="100" height="100" /><br>
 		<font color="#fff">Caricamento dati</font>
-	</div>
+	</div> -->
   </body>
 </html>
