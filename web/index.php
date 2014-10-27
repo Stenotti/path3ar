@@ -300,7 +300,7 @@
 				},
 				series: [{
 					type: 'column',
-					name: 'LIGHT',
+					name: 'NOISE',
 					data: []
 				}]
 			});
