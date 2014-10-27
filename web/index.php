@@ -353,25 +353,30 @@
 			showGraph();
 		}
 		
+		function slideToggleFunction(value) {
+			hours = Math.floor(value / 60);
+			minutes = value - (hours * 60);
+
+			if(hours < 10) hours = '0' + hours;
+			if(minutes.length < 10) minutes = '0' + minutes;
+			if(minutes == 0) minutes = '00';
+			$('#time').html(hours+':'+minutes+" - "+hours+':'+(parseInt(minutes)+sliderStep-1));
+			
+			if(currentShown == 1 || currentShown == 2){
+				updateDataInTimeRange();
+				showGraph();
+			}
+		}
+		
 		jQuery(function() {
 			jQuery('#slider-time').slider({
 				range: false,
 				min: 0,
 				max: 1440-sliderStep,
+				animate: "slow",
 				step: sliderStep,
 				slide: function(e, ui) {
-					hours = Math.floor(ui.value / 60);
-					minutes = ui.value - (hours * 60);
-
-					if(hours < 10) hours = '0' + hours;
-					if(minutes.length < 10) minutes = '0' + minutes;
-					if(minutes == 0) minutes = '00';
-					$('#time').html(hours+':'+minutes+" - "+hours+':'+(parseInt(minutes)+sliderStep-1));
-					
-					if(currentShown == 1 || currentShown == 2){
-						updateDataInTimeRange();
-						showGraph();
-					}
+					slideToggleFunction(ui.value);
 				}
 			});
 		});
@@ -483,6 +488,7 @@
 				var pointArray = new google.maps.MVCArray(samplesCoordsData);
 				heatmap.setData(pointArray);
 				if(currentCoord != null) showGraph();
+				if(isPlaying) playpause();
 			}
 		}
 		
@@ -498,6 +504,7 @@
 				setAllMap(null);
 				updateDataInTimeRange();
 				if(currentCoord != null) showGraph();
+				if(isPlaying) playpause();
 			}
 		}
 		
@@ -513,6 +520,7 @@
 				setAllMap(null);
 				updateDataInTimeRange();
 				if(currentCoord != null) showGraph();
+				if(isPlaying) playpause();
 			}
 		}
 		
@@ -522,10 +530,15 @@
 				markerCircle.setMap(null);
 				document.getElementById("removeMarkerId").style.display = "none";
 				currentCoord = null;
+				$('#numSamples').html("Number of samples: 0");
+				lightGraph.series[0].setData([]);
+				noiseGraph.series[0].setData([]);
 			}
 		}
 		
 		var isFullscreen = false;
+		var isPlaying = false;
+		var timeoutVar;
 		
 		function fullscreen() {
 			if(isFullscreen){
@@ -549,6 +562,31 @@
 			isFullscreen = !isFullscreen;
 		}
 		
+		function playpause(){
+			if(isPlaying){
+				document.getElementById("img-playpause").src = "play.png";
+				window.clearInterval(timeoutVar);
+			}
+			else{
+				document.getElementById("img-playpause").src = "pause.png";
+				timeoutVar=setInterval(
+					function () {
+						var val = $('#slider-time').slider("option", "value");
+						val+=sliderStep;
+						if(val>=1440){
+							playpause();
+						}
+						else{
+							$('#slider-time').slider('value',val);
+							slideToggleFunction(val);
+						}
+					}
+				, 1000);
+
+			}
+			isPlaying = !isPlaying;
+		}
+		
 		google.maps.event.addDomListener(window, 'load', initialize);
 
     </script>
@@ -564,9 +602,21 @@
       <button onclick="toggleLight()" id="lightButton" class="myButton"><font size=5>Light</font></button><br>
       <button onclick="toggleNoise()" id="noiseButton" class="myButton"><font size=5>Noise</font></button><br>
 	</div>
+	
 	<div id="bottomSlider" >
-		<center><b>Time range: <label id="time"></label></b></center><br>
-		<div id="slider-time"></div>
+		<center><b>Time range: <label id="time"></label></b></center>
+		<table width="100%" height="100%">
+			<tr>
+				<td width="10%">
+					<div id="sliderControls" style="display:inline;">
+						<div style="display:inline;"><button onclick="playpause()" id="playpause" class="myButton"><img id="img-playpause" src="play.png" width="20" height="20" title="Play" /> </button></div>
+					</div>
+				</td>
+				<td width="90%">
+					<div id="slider-time"></div>
+				</td>
+			</tr>
+		</table>
 	</div>
 	 <div><button onclick="fullscreen()" id="fullscreen" class="myButton"><img src="fullscreen.png" width="40" height="40" title="Fullscreen" /> </button></div>
 	

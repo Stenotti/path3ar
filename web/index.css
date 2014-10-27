@@ -32,6 +32,20 @@ html, body, #map-canvas {
 	color: #666; 
 	outline: none; 
 }
+
+#fullscreen {
+	position: absolute;
+	bottom: 4%;
+	left: auto;
+	right: 51%;
+	z-index: 5;
+	padding: 3px;
+}
+#playpause{
+	z-index: 5;
+	padding: 3px;
+}
+
 div.scrollable {
     width: 100%;
     height: 100%;
@@ -91,15 +105,6 @@ div.scrollable {
 	outline: none; 
 	height:25px;
 } 
-
-#fullscreen {
-	position: absolute;
-	bottom: 4%;
-	left: auto;
-	right: 51%;
-	z-index: 5;
-	padding: 3px;
-}
 
 .textbox { 
     -webkit-border-radius: 5px; 
