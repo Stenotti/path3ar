@@ -300,7 +300,7 @@
 				},
 				series: [{
 					type: 'column',
-					name: 'NOISE',
+					name: 'LIGHT',
 					data: []
 				}]
 			});
@@ -525,6 +525,30 @@
 			}
 		}
 		
+		var isFullscreen = false;
+		
+		function fullscreen() {
+			if(isFullscreen){
+				document.getElementById("contentGraphs").style.display = "table-cell";
+				document.getElementById("contentMap").width = "50%";
+				document.getElementById("fullscreen").style.right = "51%";
+				document.getElementById("panel").style.right = "51%";
+				document.getElementById("bottomSlider").style.right = "55%";
+			}
+			else{
+				document.getElementById("contentGraphs").style.display = "none";
+				document.getElementById("contentMap").width = "100%";
+				document.getElementById("fullscreen").style.right = "2%";
+				document.getElementById("panel").style.right = "2%";
+				document.getElementById("bottomSlider").style.right = "13%";
+			}
+			google.maps.event.trigger(map, 'resize');
+			if(marker != null){
+				map.setCenter(currentCoord);
+			}
+			isFullscreen = !isFullscreen;
+		}
+		
 		google.maps.event.addDomListener(window, 'load', initialize);
 
     </script>
@@ -544,13 +568,14 @@
 		<center><b>Time range: <label id="time"></label></b></center><br>
 		<div id="slider-time"></div>
 	</div>
+	 <div><button onclick="fullscreen()" id="fullscreen" class="myButton"><img src="fullscreen.png" width="40" height="40" title="Fullscreen" /> </button></div>
 	
 	<table width="100%" height="100%">
 		<tr>
-			<td width="50%">
+			<td width="50%" id="contentMap">
 				<div id="map-canvas" ></div>
 			</td>
-			<td width="50%">
+			<td width="50%" id="contentGraphs" >
 				<div class="scrollable">
 					<center><b><div id="numSamples"></div></b></center>
 					<button class="myButton" id="graphLightToggle">Show/Hide Light Graph</button>

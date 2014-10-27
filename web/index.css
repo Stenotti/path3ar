@@ -92,6 +92,15 @@ div.scrollable {
 	height:25px;
 } 
 
+#fullscreen {
+	position: absolute;
+	bottom: 4%;
+	left: auto;
+	right: 51%;
+	z-index: 5;
+	padding: 3px;
+}
+
 .textbox { 
     -webkit-border-radius: 5px; 
     -moz-border-radius: 5px; 
