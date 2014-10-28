@@ -87,7 +87,7 @@
 		}
 		
 		function addInvisibleMarker(map, name, latlng){
-			var image = new google.maps.MarkerImage(document.URL+'invisible-marker.png',
+			var image = new google.maps.MarkerImage(document.URL+'img/invisible-marker.png',
 				null, 
 				null,
 				new google.maps.Point(25, 25)
