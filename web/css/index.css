@@ -33,12 +33,14 @@ html, body, #map-canvas {
 	outline: none; 
 }
 
-#fullscreen {
+#controlButtons {
 	position: absolute;
 	bottom: 4%;
 	left: auto;
 	right: 51%;
 	z-index: 5;
+}
+#fullscreen, #userLocation {
 	padding: 3px;
 }
 #playpause{

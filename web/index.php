@@ -43,6 +43,8 @@
 		
 		var lightGraph, noiseGraph;
 		
+		var userLocation;
+		
 		function Comparator(a,b){
 			if (a[0] < b[0]) return -1;
 			if (a[0] > b[0]) return 1;
@@ -322,8 +324,7 @@
 				  console.log($(this)+" - "+$(this).next());
 				  return false;
 			});
-			
-			
+			centerLocation();
 		}
 		
 		function clickFunction(coord){
@@ -552,14 +553,14 @@
 			if(isFullscreen){
 				document.getElementById("contentGraphs").style.display = "table-cell";
 				document.getElementById("contentMap").width = "50%";
-				document.getElementById("fullscreen").style.right = "51%";
+				document.getElementById("controlButtons").style.right = "51%";
 				document.getElementById("panel").style.right = "51%";
 				document.getElementById("bottomSlider").style.right = "55%";
 			}
 			else{
 				document.getElementById("contentGraphs").style.display = "none";
 				document.getElementById("contentMap").width = "100%";
-				document.getElementById("fullscreen").style.right = "2%";
+				document.getElementById("controlButtons").style.right = "2%";
 				document.getElementById("panel").style.right = "2%";
 				document.getElementById("bottomSlider").style.right = "13%";
 			}
@@ -595,6 +596,57 @@
 
 			}
 			isPlaying = !isPlaying;
+		}
+		
+		function centerLocation(){
+			if(navigator.geolocation) {
+				if(userLocation==null){
+					navigator.geolocation.watchPosition(function(position) {
+						userLocation = new google.maps.LatLng(position.coords.latitude,
+													   position.coords.longitude);
+						var mark = new google.maps.Marker({
+							map: map,
+							position: userLocation,
+							title: "User location",
+							icon: 'img/user.png'
+						});
+						map.setCenter(userLocation);
+					},
+					function (error) { 
+					  if (error.code == error.PERMISSION_DENIED)
+						document.getElementById("userLocation").style.display = "none";
+					});
+				}
+				else{
+					map.setCenter(userLocation);
+				}
+			  } else {
+				document.getElementById("userLocation").style.display = "none";
+			  }
+		
+			if(navigator.geolocation) {
+				navigator.geolocation.watchPosition(function(position) {
+				  console.log("i'm tracking you!");
+				},
+				function (error) { 
+				  if (error.code == error.PERMISSION_DENIED)
+					  console.log("you denied me :-(");
+				});
+				navigator.geolocation.getCurrentPosition(function(position) {
+					userLocation = new google.maps.LatLng(position.coords.latitude,
+												   position.coords.longitude);
+					var mark = new google.maps.Marker({
+						map: map,
+						position: userLocation,
+						title: "User location",
+						icon: 'img/user.png'
+					});
+					map.setCenter(userLocation);
+				}, function() {
+				});
+			  } else {
+				document.getElementById("userLocation").style.display = "none";
+			  }
 		}
 		
 		$(function(){
@@ -655,7 +707,10 @@
 			</tr>
 		</table>
 	</div>
-	 <div><button onclick="fullscreen()" id="fullscreen" class="myButton"><img src="img/fullscreen.png" width="40" height="40" title="Fullscreen" /> </button></div>
+	<div id="controlButtons">
+		 <div><button onclick="fullscreen()" id="fullscreen" class="myButton"><img src="img/fullscreen.png" width="40" height="40" title="Fullscreen" /> </button></div>
+		 <div><button onclick="centerLocation()" id="userLocation" class="myButton"><img src="img/centerlocation.png" width="40" height="40" title="User Location" /> </button></div>
+	</div>
 	
 	<table width="100%" height="100%">
 		<tr>
