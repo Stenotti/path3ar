@@ -4,12 +4,17 @@
     <meta charset="utf-8">
 	<link rel="shortcut icon" type="image/x-icon" href="favicon.ico">
     <title>Heatmaps</title>
-    <link href="index.css" rel="stylesheet" type="text/css">
-	<script src="customFormat.js"></script>
+	
+    <link href="css/index.css" rel="stylesheet" type="text/css">
+    <link href="css/ui.switchbutton.css" rel="stylesheet" type="text/css">
 	<link rel="stylesheet" href="//code.jquery.com/ui/1.11.1/themes/smoothness/jquery-ui.css">
-	<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.min.js"></script>
-	<script src="//code.jquery.com/ui/1.11.1/jquery-ui.js"></script>
-	<script src="http://code.highcharts.com/stock/highstock.js"></script>
+	
+	<script src="js/customFormat.js"></script>
+	<script src="js/jquery.min.js"></script>
+	<script src="js/jquery-ui.js"></script>
+	<script type="text/javascript" src="js/jquery.tmpl.min.js"></script>
+	<script src="js/jquery.switchbutton.js"></script>
+	<script src="js/highstock.js"></script>
     <script src="https://maps.googleapis.com/maps/api/js?v=3.exp&libraries=visualization"></script>
 	<script>
 		var sliderStep = 60;
@@ -317,6 +322,8 @@
 				  console.log($(this)+" - "+$(this).next());
 				  return false;
 			});
+			
+			
 		}
 		
 		function clickFunction(coord){
@@ -539,6 +546,7 @@
 		var isFullscreen = false;
 		var isPlaying = false;
 		var timeoutVar;
+		var slider_vel = 1000;
 		
 		function fullscreen() {
 			if(isFullscreen){
@@ -564,16 +572,18 @@
 		
 		function playpause(){
 			if(isPlaying){
-				document.getElementById("img-playpause").src = "play.png";
+				document.getElementById("img-playpause").src = "img/play.png";
 				window.clearInterval(timeoutVar);
 			}
 			else{
-				document.getElementById("img-playpause").src = "pause.png";
+				document.getElementById("img-playpause").src = "img/pause.png";
 				timeoutVar=setInterval(
 					function () {
 						var val = $('#slider-time').slider("option", "value");
 						val+=sliderStep;
 						if(val>=1440){
+							$('#slider-time').slider('value',0);
+							slideToggleFunction(0);
 							playpause();
 						}
 						else{
@@ -581,11 +591,29 @@
 							slideToggleFunction(val);
 						}
 					}
-				, 1000);
+				, slider_vel);
 
 			}
 			isPlaying = !isPlaying;
 		}
+		
+		$(function(){
+			$("#fastslow").switchbutton({
+				checkedLabel: 'FAST',
+				uncheckedLabel: 'SLOW'
+			})
+			.change(function(){
+				if($(this).prop("checked") == true){
+					slider_vel = 400;
+				}
+				else{
+					slider_vel = 1000;
+				}
+				playpause();
+				playpause();
+				//alert("Switch 6 changed to " + ($(this).prop("checked") ? "checked" : "unchecked"));
+			});
+		});
 		
 		google.maps.event.addDomListener(window, 'load', initialize);
 
@@ -604,12 +632,21 @@
 	</div>
 	
 	<div id="bottomSlider" >
-		<center><b>Time range: <label id="time"></label></b></center>
+		<table width="100%" height="100%">
+			<tr>
+				<td width="25%">
+					<center><input type="checkbox" id="fastslow" style="position: relative;" /></center>
+				</td>
+				<td width="75%">
+					<center><b>Time range: <label id="time"></label></b></center>
+				</td>
+			</tr>
+		</table>
 		<table width="100%" height="100%">
 			<tr>
 				<td width="10%">
 					<div id="sliderControls" style="display:inline;">
-						<div style="display:inline;"><button onclick="playpause()" id="playpause" class="myButton"><img id="img-playpause" src="play.png" width="20" height="20" title="Play" /> </button></div>
+						<div style="display:inline;"><button onclick="playpause()" id="playpause" class="myButton"><img id="img-playpause" src="img/play.png" width="20" height="20" title="Play" /> </button></div>
 					</div>
 				</td>
 				<td width="90%">
@@ -618,7 +655,7 @@
 			</tr>
 		</table>
 	</div>
-	 <div><button onclick="fullscreen()" id="fullscreen" class="myButton"><img src="fullscreen.png" width="40" height="40" title="Fullscreen" /> </button></div>
+	 <div><button onclick="fullscreen()" id="fullscreen" class="myButton"><img src="img/fullscreen.png" width="40" height="40" title="Fullscreen" /> </button></div>
 	
 	<table width="100%" height="100%">
 		<tr>
@@ -638,7 +675,7 @@
 	</table>
 	
 	<!-- <div id="wait" style="display:none;width:128px;height:128px;border:0px; position:absolute;top:40%;left:45%;padding:2px;">
-		<img src='loader.gif' width="100" height="100" /><br>
+		<img src='img/loader.gif' width="100" height="100" /><br>
 		<font color="#fff">Caricamento dati</font>
 	</div> -->
   </body>

@@ -14,7 +14,7 @@ html, body, #map-canvas {
 	position: absolute;
 	bottom: 4%;
 	left: 2%;
-	right: 76%;
+	right: auto;
 	z-index: 5;
 	padding: 5px;
 }
