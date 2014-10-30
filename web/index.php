@@ -623,30 +623,6 @@
 			  } else {
 				document.getElementById("userLocation").style.display = "none";
 			  }
-		
-			if(navigator.geolocation) {
-				navigator.geolocation.watchPosition(function(position) {
-				  console.log("i'm tracking you!");
-				},
-				function (error) { 
-				  if (error.code == error.PERMISSION_DENIED)
-					  console.log("you denied me :-(");
-				});
-				navigator.geolocation.getCurrentPosition(function(position) {
-					userLocation = new google.maps.LatLng(position.coords.latitude,
-												   position.coords.longitude);
-					var mark = new google.maps.Marker({
-						map: map,
-						position: userLocation,
-						title: "User location",
-						icon: 'img/user.png'
-					});
-					map.setCenter(userLocation);
-				}, function() {
-				});
-			  } else {
-				document.getElementById("userLocation").style.display = "none";
-			  }
 		}
 		
 		$(function(){
