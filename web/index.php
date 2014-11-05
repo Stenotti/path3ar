@@ -353,7 +353,7 @@
 			  fillOpacity: 0.35,
 			  map: map,
 			  center: currentCoord,
-			  radius: parseFloat(document.getElementById('radiusM').value)
+			  radius: parseFloat(document.getElementById('radiusM').value)*2
 			};
 			// Add the circle for this city to the map.
 			markerCircle = new google.maps.Circle(circleOptions);
