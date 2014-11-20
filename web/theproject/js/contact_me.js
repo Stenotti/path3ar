@@ -5,6 +5,7 @@ $(function() {
         submitError: function($form, event, errors) {
             // additional error messages or events
         },
+
         submitSuccess: function($form, event) {
             event.preventDefault(); // prevent default submit behaviour
             // get values from FORM
@@ -17,8 +18,9 @@ $(function() {
                 firstName = name.split(' ').slice(0, -1).join(' ');
             }
             $.ajax({
-                url: "http://tombolini.altervista.org/Path3/contact_me.php&callback=?",
+                url: "http://tombolini.altervista.org/Path3/contact_me.php",
                 type: "POST",
+				dataType: "jsonp",
                 data: {
                     name: name,
                     email: email,
