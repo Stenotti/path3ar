@@ -12,8 +12,12 @@ if(empty($_POST['name'])  		||
 $name = $_POST['name'];
 $email_address = $_POST['email'];
 $message = $_POST['message'];
-	
-header("content-type: text/javascript");
+
+header('Access-Control-Allow-Origin: '.$_SERVER['HTTP_ORIGIN']);
+header('Access-Control-Allow-Methods: GET, PUT, POST, DELETE, OPTIONS');
+header('Access-Control-Max-Age: 1000');
+header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With');
+
 // Create the email and send the message
 $to = 'st.tombolini@gmail.com'; 
 $email_subject = "Website Contact Form:  $name";
