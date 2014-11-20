@@ -90,13 +90,6 @@ div.scrollable {
 	filter:progid:DXImageTransform.Microsoft.gradient(startColorstr='#408c99', endColorstr='#599bb3',GradientType=0);
 	background-color:#408c99;
 }
-/*
- #removeMarkerId{
-    background: #ccc url('img/marker.png') no-repeat top left;
-    padding-left: 16px;
-    height: 16px;
-}*/
-
 .buttonActive {
 	background:linear-gradient(to bottom, #034259 5%, #007ba8 100%);
 }

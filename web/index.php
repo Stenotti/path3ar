@@ -3,9 +3,10 @@
   <head>
     <meta charset="utf-8">
 	<link rel="shortcut icon" type="image/x-icon" href="favicon.ico">
-    <title>Heatmaps</title>
+    <title>PathS</title>
 	
     <link href="css/index.css" rel="stylesheet" type="text/css">
+    <link href="css/atooltip.css" rel="stylesheet" type="text/css">
     <link href="css/ui.switchbutton.css" rel="stylesheet" type="text/css">
 	<link rel="stylesheet" href="//code.jquery.com/ui/1.11.1/themes/smoothness/jquery-ui.css">
 	
@@ -14,6 +15,7 @@
 	<script src="js/jquery-ui.js"></script>
 	<script type="text/javascript" src="js/jquery.tmpl.min.js"></script>
 	<script src="js/jquery.switchbutton.js"></script>
+	<script type="text/javascript" src="js/jquery.atooltip.min.js"></script>  
 	<script src="js/highstock.js"></script>
     <script src="https://maps.googleapis.com/maps/api/js?v=3.exp&libraries=visualization"></script>
 	<script>
@@ -92,7 +94,7 @@
 			var image = new google.maps.MarkerImage(document.URL+'img/invisible-marker.png',
 				null, 
 				null,
-				new google.maps.Point(25, 25)
+				new google.maps.Point(10, 10)
 			);
 			var mark = new google.maps.Marker({
 				map: map,
@@ -219,7 +221,7 @@
 		function initialize() {
 			bounds = new google.maps.LatLngBounds();
 			var mapOptions = {
-				mapTypeId: google.maps.MapTypeId.SATELLITE
+				mapTypeId: google.maps.MapTypeId.TERRAIN
 			};
 			map = new google.maps.Map(document.getElementById('map-canvas'), mapOptions);
 			heatmap = new google.maps.visualization.HeatmapLayer();
@@ -235,6 +237,16 @@
 			
 			$('#time').html("00:00 - 00:"+(sliderStep-1));
 			$('#numSamples').html("Number of samples: 0");
+			
+			var width_but1 = $("#samplesButton").width();
+			var width_but2 = $("#lightButton").width();
+			var width_but3 = $("#noiseButton").width();
+			var max = width_but1;
+			if(width_but2 > max) max=width_but2;
+			if(width_but3 > max) max=width_but3;
+			$("#samplesButton").width(max);
+			$("#lightButton").width(max);
+			$("#noiseButton").width(max);
 			
 			Highcharts.setOptions({
 				global : {
@@ -324,7 +336,46 @@
 				  console.log($(this)+" - "+$(this).next());
 				  return false;
 			});
-			centerLocation();
+			centerLocation(true);
+			
+			$("#radiusM").bind("input", function() {
+				var val = parseFloat(document.getElementById('radiusM').value);
+				if(markerCircle != null){
+					markerCircle.setRadius(val*2);
+					showGraph();
+				}
+			});
+			
+			$('.myButton').aToolTip({  
+				// no need to change/override 
+				toolTipId: 'aToolTip',  
+				// ok to override  
+				fixed: false,                   // Set true to activate fixed position  
+				clickIt: false,                 // set to true for click activated tooltip  
+				inSpeed: 200,                   // Speed tooltip fades in  
+				outSpeed: 100,                  // Speed tooltip fades out  
+				tipContent: '',                 // Pass in content or it will use objects 'title' attribute  
+				toolTipClass: 'defaultTheme',   // Set class name for custom theme/styles  
+				xOffset: 5,                     // x position  
+				yOffset: 5,                     // y position  
+				onShow: null,                   // callback function that fires after atooltip has shown  
+				onHide: null                    // callback function that fires after atooltip has faded out      
+			});
+			$('#infoRadius').aToolTip({  
+				// no need to change/override 
+				toolTipId: 'aToolTip',  
+				// ok to override  
+				fixed: false,                   // Set true to activate fixed position  
+				clickIt: false,                 // set to true for click activated tooltip  
+				inSpeed: 200,                   // Speed tooltip fades in  
+				outSpeed: 100,                  // Speed tooltip fades out  
+				tipContent: '',                 // Pass in content or it will use objects 'title' attribute  
+				toolTipClass: 'defaultTheme',   // Set class name for custom theme/styles  
+				xOffset: 5,                     // x position  
+				yOffset: 5,                     // y position  
+				onShow: null,                   // callback function that fires after atooltip has shown  
+				onHide: null                    // callback function that fires after atooltip has faded out      
+			});
 		}
 		
 		function clickFunction(coord){
@@ -333,8 +384,9 @@
 			var lng = coord.lng();
 			map.panTo(coord);
 			var zoom = map.getZoom();
-			if(zoom < 13)
-				zoom = 13;
+			if(zoom < 10) zoom = 10;
+			else if(zoom < 14) zoom = 14;
+			else if(zoom < 18) zoom = 18;
 			setTimeout("map.setZoom("+zoom+")",500);
 			if(marker != null){
 				marker.setMap(null);
@@ -446,7 +498,7 @@
 					var toCheck = samplesIndexes[arrayIndex][j];
 					var d = distanceInMeters(samplesCoordsData[i].lat(),samplesCoordsData[i].lng(),
 											 samplesCoordsData[toCheck].lat(),samplesCoordsData[toCheck].lng());
-					if(d<10){
+					if(d<2){
 						checkAdd = false;
 						var light2 = getLightFromJson(samplesData[toCheck]);
 						var noise2 = getNoiseFromJson(samplesData[toCheck]);
@@ -556,6 +608,8 @@
 				document.getElementById("controlButtons").style.right = "51%";
 				document.getElementById("panel").style.right = "51%";
 				document.getElementById("bottomSlider").style.right = "55%";
+				document.getElementById("bottomSlider").style.right = "55%";
+				document.getElementById("image_fullscren").src="img/fullscreen_in.png";
 			}
 			else{
 				document.getElementById("contentGraphs").style.display = "none";
@@ -563,6 +617,7 @@
 				document.getElementById("controlButtons").style.right = "2%";
 				document.getElementById("panel").style.right = "2%";
 				document.getElementById("bottomSlider").style.right = "13%";
+				document.getElementById("image_fullscren").src="img/fullscreen_out.png";
 			}
 			google.maps.event.trigger(map, 'resize');
 			if(marker != null){
@@ -598,7 +653,7 @@
 			isPlaying = !isPlaying;
 		}
 		
-		function centerLocation(){
+		function centerLocation(init){
 			if(navigator.geolocation) {
 				if(userLocation==null){
 					navigator.geolocation.watchPosition(function(position) {
@@ -610,7 +665,13 @@
 							title: "User location",
 							icon: 'img/user.png'
 						});
-						map.setCenter(userLocation);
+						google.maps.event.addListener(mark, 'click', function(){
+							clickFunction(userLocation);
+						});
+						if(init == false){
+							map.setCenter(userLocation);
+							clickFunction(userLocation);
+						}
 					},
 					function (error) { 
 					  if (error.code == error.PERMISSION_DENIED)
@@ -618,7 +679,10 @@
 					});
 				}
 				else{
-					map.setCenter(userLocation);
+					if(init == false){
+						map.setCenter(userLocation);
+						clickFunction(userLocation);
+					}
 				}
 			  } else {
 				document.getElementById("userLocation").style.display = "none";
@@ -650,13 +714,13 @@
 
   <body>
     <div id="panel" class="labeltextbox">
-	  Radius: <input type="number" id="radiusM" max="30000" min="1" size="2" value="100" class="textbox"> m<br><br>
-      <button onclick="removeMarker()" id="removeMarkerId" class="myButton" style="display:none">Remove marker</button>
+	  <div id="infoRadius"  title="Set the marker radius">Radius: <input type="number" id="radiusM" max="30000" min="1" size="2" value="100" class="textbox"> m</div><br><br>
+      <button onclick="removeMarker()" id="removeMarkerId" class="myButton" style="display:none"  title="Remove the marker from the clicked position">Remove marker<img src="img/marker.png" height="23px" alt="Remove Marker" style="padding-left: 5px; vertical-align:middle;"/></button>
     </div>
 	<div id="bottomPanel">
-      <button onclick="toggleSamples()" id="samplesButton" class="myButton"><font size=5>Samples</font></button><br>
-      <button onclick="toggleLight()" id="lightButton" class="myButton"><font size=5>Light</font></button><br>
-      <button onclick="toggleNoise()" id="noiseButton" class="myButton"><font size=5>Noise</font></button><br>
+      <button onclick="toggleSamples()" id="samplesButton" title="Location of samples" class="myButton"><font size=5>Samples</font></button><br>
+      <button onclick="toggleLight()" id="lightButton" title="Light level, green means low light while red means high light" class="myButton"><font size=5>Light</font></button><br>
+      <button onclick="toggleNoise()" id="noiseButton" title="Noise level, green means a quiet area while red means a noisy area" class="myButton"><font size=5>Noise</font></button><br>
 	</div>
 	
 	<div id="bottomSlider" >
@@ -674,7 +738,7 @@
 			<tr>
 				<td width="10%">
 					<div id="sliderControls" style="display:inline;">
-						<div style="display:inline;"><button onclick="playpause()" id="playpause" class="myButton"><img id="img-playpause" src="img/play.png" width="20" height="20" title="Play" /> </button></div>
+						<div style="display:inline;"><button onclick="playpause()" id="playpause" class="myButton"  title="Play/Pause animation"><img id="img-playpause" src="img/play.png" width="20" height="20" /> </button></div>
 					</div>
 				</td>
 				<td width="90%">
@@ -684,8 +748,8 @@
 		</table>
 	</div>
 	<div id="controlButtons">
-		 <div><button onclick="fullscreen()" id="fullscreen" class="myButton"><img src="img/fullscreen.png" width="40" height="40" title="Fullscreen" /> </button></div>
-		 <div><button onclick="centerLocation()" id="userLocation" class="myButton"><img src="img/centerlocation.png" width="40" height="40" title="User Location" /> </button></div>
+		 <div><button onclick="fullscreen()" id="fullscreen" class="myButton"  title="Fullscreen toggle"><img id="image_fullscren" src="img/fullscreen_in.png" width="40" height="40" title="Fullscreen" /> </button></div>
+		 <div><button onclick="centerLocation(false)" id="userLocation" class="myButton"  title="Center the map in the user location"><img src="img/centerlocation.png" width="40" height="40" title="User Location" /> </button></div>
 	</div>
 	
 	<table width="100%" height="100%">
@@ -704,6 +768,8 @@
 			</td>
 		</tr>
 	</table>
+	
+
 	
 	<!-- <div id="wait" style="display:none;width:128px;height:128px;border:0px; position:absolute;top:40%;left:45%;padding:2px;">
 		<img src='img/loader.gif' width="100" height="100" /><br>
