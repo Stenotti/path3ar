@@ -21,6 +21,6 @@ $headers = "From: noreply@path-graphs.com\n"; // This is the email address the g
 $headers .= "Reply-To: $email_address";	
 mail($to,$email_subject,$email_body,$headers);
 
-echo "Inviata mail a $email con testo $email_body";
+echo "Inviata mail a $to con testo $email_body";
 return true;			
 ?>
