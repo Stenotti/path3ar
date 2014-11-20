@@ -17,7 +17,7 @@ $(function() {
                 firstName = name.split(' ').slice(0, -1).join(' ');
             }
             $.ajax({
-                url: "http://tombolini.altervista.org/Path3/contact_me.php",
+                url: "http://tombolini.altervista.org/Path3/contact_me.php&callback=?",
                 type: "POST",
                 data: {
                     name: name,
