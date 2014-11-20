@@ -21,7 +21,6 @@ $(function() {
                 url: "http://tombolini.altervista.org/Path3/contact_me.php",
                 type: "POST",
 				crossDomain: true,
-				dataType: 'json',
                 data: {
                     name: name,
                     email: email,
