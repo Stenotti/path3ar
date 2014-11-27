@@ -8,6 +8,7 @@
     <link href="css/index.css" rel="stylesheet" type="text/css">
     <link href="css/atooltip.css" rel="stylesheet" type="text/css">
     <link href="css/ui.switchbutton.css" rel="stylesheet" type="text/css">
+	<link rel="stylesheet" type="text/css" href="css/jquery.datetimepicker.css"/ >
 	<link rel="stylesheet" href="css/jquery-ui.css">
 	
 	<script src="js/customFormat.js"></script>
@@ -17,6 +18,7 @@
 	<script src="js/jquery.switchbutton.js"></script>
 	<script type="text/javascript" src="js/jquery.atooltip.min.js"></script>  
 	<script src="js/highstock.js"></script>
+	<script src="js/jquery.datetimepicker.js"></script>
     <script src="https://maps.googleapis.com/maps/api/js?v=3.exp&libraries=visualization"></script>
 	<script>
 		var sliderStep = 60;
@@ -43,6 +45,8 @@
 		
 		var mindate = -1;
 		var maxdate = -1;
+		var minhour = 0;
+		var maxhour = 24*sliderStep;
 		
 		var lightGraph, noiseGraph;
 		
@@ -212,6 +216,8 @@
 			}
 		}
 
+		var lastselectedminhour = -1;
+		var lastselectedmaxhour = -1;
 		function initialize() {
 			bounds = new google.maps.LatLngBounds();
 			var mapOptions = {
@@ -228,53 +234,93 @@
 			getSamples();
 			createTimedArrays();
 			map.fitBounds(bounds);
-			
-			$( "#datepickerfrom" ).datepicker({
-				dateFormat: 'dd/mm/yy',
-				onSelect: function(dateText, inst) {
+						
+			var min = new Date(mindate);
+			min.setHours(0);
+			min.setMinutes(0);
+			min.setSeconds(0);
+			min.setMilliseconds(0);
+			var mintime = min.customFormat("#YYYY#/#MM#/#DD# #hhh#:#mm#");
+			$( "#datepickerfrom" ).datetimepicker({ 
+				value: mintime,
+				formatDate:'d/m/Y',
+				onChangeDateTime:function(dp,$input){
 					removeMarker();
-					var datefrom = $(this).val();
+					var datefrom = $input.val();
 					var msdate = new Date();
-					msdate.setFullYear(Number(datefrom.split("/")[2]), Number(datefrom.split("/")[1]-1), Number(datefrom.split("/")[0]));
-					msdate.setHours(0);
-					msdate.setMinutes(0);
+					msdate.setFullYear(Number(datefrom.split("/")[0]), Number(datefrom.split("/")[1]-1), Number(datefrom.split("/")[2].split(" ")[0]));
+					msdate.setHours(Number(datefrom.split(" ")[1].split(":")[0]));
+					msdate.setMinutes(Number(datefrom.split(" ")[1].split(":")[1]));
 					msdate.setSeconds(0);
 					msdate.setMilliseconds(0);
 					var tmpmindate=msdate.getTime();
 					if(tmpmindate > maxdate){
 						alert("Empty range");
-						$( "#datepickerfrom" ).datepicker("setDate", new Date(mindate) );
+						$( "#datepickerfrom" ).datetimepicker({ value: mintime});
 					}
-					else mindate = tmpmindate;
+					else{
+						mindate = tmpmindate;
+					}
+					var selectedtimestart = Number($( "#datepickerfrom" ).val().split(" ")[1].split(":")[0]);
+					minhour = selectedtimestart * sliderStep * (60/sliderStep);
+					if(lastselectedminhour==-1) lastselectedminhour=minhour;
+					if(maxhour <= minhour){
+						alert("The selected hour value must be smaller than the other one");
+						minhour = lastselectedmaxhour;
+						$( "#datepickerfrom" ).datetimepicker({ value: maxtime});
+					}
+					lastselectedminhour=minhour;
+					$('#leftSlider').css('width', (minhour*100/1440) +'%');
+					$('#slider-time').slider('value',minhour);
+					slideToggleFunction(minhour);
+					
 					if(currentShown == 0) toggleSamples();
 					else if(currentShown == 1) toggleLight();
 					else if(currentShown == 2) toggleNoise();
+
 				}
 			});
-			$( "#datepickerto" ).datepicker({
-				dateFormat: 'dd/mm/yy',	
-				onSelect: function(dateText, inst) {
+			var max = new Date(maxdate);
+			max.setHours(23);
+			max.setMinutes(59);
+			max.setSeconds(59);
+			max.setMilliseconds(999);
+			var maxtime = max.customFormat("#YYYY#/#MM#/#DD# #hhh#:#mm#");
+			$( "#datepickerto" ).datetimepicker({ 
+				value: maxtime,
+				formatDate:'d/m/Y',
+				onChangeDateTime:function(dp,$input){
 					removeMarker();
-					var dateto = $(this).val();
+					var dateto = $input.val();
 					var msdate = new Date();
-					msdate.setHours(23);
-					msdate.setMinutes(59);
+					msdate.setHours(Number(dateto.split(" ")[1].split(":")[0]));
+					msdate.setMinutes(Number(dateto.split(" ")[1].split(":")[1]));
 					msdate.setSeconds(59);
 					msdate.setMilliseconds(999);
-					msdate.setFullYear(Number(dateto.split("/")[2]), Number(dateto.split("/")[1]-1), Number(dateto.split("/")[0]));
+					msdate.setFullYear(Number(dateto.split("/")[0]), Number(dateto.split("/")[1]-1), Number(dateto.split("/")[2].split(" ")[0]));
 					var tmpmaxdate=msdate.getTime();
 					if(tmpmaxdate < mindate){
 						alert("Empty range");
-						$( "#datepickerto" ).datepicker("setDate", new Date(maxdate) );
+						$( "#datepickerto" ).datetimepicker({ value: maxtime});
 					}
 					else maxdate = tmpmaxdate;
+					var selectedtimeend =  Number($( "#datepickerto" ).val().split(" ")[1].split(":")[0]);
+					maxhour = selectedtimeend * sliderStep * (60/sliderStep);
+					if(lastselectedmaxhour==-1) lastselectedmaxhour=maxhour;
+					if((maxhour) <= minhour){
+						alert("The selected hour value must be greater than the other one");
+						maxhour = lastselectedmaxhour;
+						$( "#datepickerto" ).datetimepicker({ value: maxtime});
+					}
+					lastselectedmaxhour=maxhour;
+					$('#rightSlider').css('width', 100 - ((maxhour)*100/1440) +'%');
+					$('#slider-time').slider('value',minhour);
+					slideToggleFunction(minhour);
 					if(currentShown == 0) toggleSamples();
 					else if(currentShown == 1) toggleLight();
 					else if(currentShown == 2) toggleNoise();
 				}
 			});
-			$( "#datepickerfrom" ).datepicker("setDate", new Date(mindate) );
-			$( "#datepickerto" ).datepicker("setDate", new Date(maxdate) );
 			
 			if(sliderStep<=60)
 				$('#time').html("00:00 - 00:"+(sliderStep-1));
@@ -436,14 +482,22 @@
 				onHide: null                    // callback function that fires after atooltip has faded out      
 			});
 			$( "#timestep" ).change(function() {
-				sliderStep =  parseInt($(this).val());
-				createTimedArrays();
-				$('#slider-time').slider('option', 'step', sliderStep);
-				$('#slider-time').slider('option', 'max', 1440-sliderStep);
-				$('#slider-time').slider('value',0);
-				slideToggleFunction(0);
+				if((maxhour-minhour)<parseInt($(this).val())){
+					$('option[value='+lasttimestep+']').attr('selected', 'selected');
+					alert("The step is too long for this interval");
+				}
+				else{
+					sliderStep =  parseInt($(this).val());
+					lasttimestep = sliderStep;
+					createTimedArrays();
+					$('#slider-time').slider('option', 'step', sliderStep);
+					$('#slider-time').slider('option', 'max', 1440-sliderStep);
+					$('#slider-time').slider('value',minhour);
+					slideToggleFunction(minhour);
+				}
 			});
 		}
+		var lasttimestep = 60;
 		
 		function clickFunction(coord){
 			currentCoord = coord;
@@ -502,6 +556,7 @@
 			}
 		}
 		
+		var lastslidervalue = -1;
 		jQuery(function() {
 			jQuery('#slider-time').slider({
 				range: false,
@@ -509,10 +564,20 @@
 				max: 1440-sliderStep,
 				animate: "slow",
 				step: sliderStep,
-				slide: function(e, ui) {
-					slideToggleFunction(ui.value);
+				slide: function(e, ui) { 
+					if(lastslidervalue==-1) lastslidervalue = ui.value;
+					if(ui.value >= minhour && ui.value <= (maxhour-sliderStep)){
+						lastslidervalue=ui.value;
+						slideToggleFunction(ui.value);
+					}
+					else{
+						return false;
+					}
+					
 				}
-			});
+			})
+			.append('<div id="leftSlider" style="width: 0%"></div>')
+			.append('<div id="rightSlider" style="width: 0%"></div>');
 		});
 		
 		function getLightFromJson(json){
@@ -744,9 +809,10 @@
 					function () {
 						var val = $('#slider-time').slider("option", "value");
 						val+=sliderStep;
-						if(val>=1440){
-							$('#slider-time').slider('value',0);
-							slideToggleFunction(0);
+						console.log("val="+val+", minhour="+minhour+", maxhour="+maxhour);
+						if(val>=1440 || val <= minhour || val > (maxhour-sliderStep)){
+							$('#slider-time').slider('value',minhour);
+							slideToggleFunction(minhour);
 							playpause();
 						}
 						else{
@@ -822,7 +888,7 @@
   <body>
 	<button onclick="removeMarker()" id="removeMarkerId" class="myButton" style="display:none"  title="Remove the marker from the clicked position"><font size=3>Remove marker</font><img src="img/marker.png" height="23px" alt="Remove Marker" style="padding-left: 5px; vertical-align:middle;"/></button>
     
-	<div id="fromto" class="labeltextbox" title="Set the dates range"><b>From:<input type="text" size="8" id="datepickerfrom">	To:<input type="text" size="8" id="datepickerto"></b></div></div>
+	<div id="fromto" class="labeltextbox" title="Set the dates range"><b>Show the samples in the range from:<input type="text"id="datepickerfrom" size=12>	to:<input type="text" id="datepickerto" size=12></b></div></div>
 	
 	<div id="bottomPanel">
       <button onclick="toggleSamples()" id="samplesButton" title="Location of samples" class="myButton"><font size=5>Samples</font></button><br>
@@ -848,6 +914,7 @@
 						  <option value=60 selected="selected">60 min</option>
 						  <option value=120>120 min</option>
 						  <option value=180>180 min</option>
+						  <option value=1440>All interval</option>
 						</select>
 					</center>
 				</td>
@@ -862,7 +929,17 @@
 					</div>
 				</td>
 				<td width="90%">
-					<div id="slider-time"></div>
+					<table width="100%" height="100%">
+						<td width="5%">
+							<center><div id="timestart"><b>00:00</b></div></center>
+						</td>
+						<td width="90%">
+							<center><div id="slider-time" style="margin-left: 5px; margin-right:5px;"></div></center>
+						</td>
+						<td width="5%">
+							<center> <div id="timeend"><b>24:00</b></div></center>
+						</td>
+					</table>
 				</td>
 			</tr>
 		</table>
