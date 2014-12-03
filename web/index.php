@@ -21,15 +21,21 @@
 	<script src="js/jquery.datetimepicker.js"></script>
     <script src="https://maps.googleapis.com/maps/api/js?v=3.exp&libraries=visualization"></script>
 	<script>
-		var sliderStep = 60;
-		var numberOfTimeRanges = 1440 / sliderStep;
 		var samplesData; // Lista di tutti i campionamenti
 		var samplesCoordsData = []; // Lista delle coordinate dei campionamenti per la mappa
-		var samplesIndexes = [numberOfTimeRanges]; // Lista degli indici utilizzata per mostrare i campionamenti divisi per l'orario
 		
-		var samplesNoiseTimedData = [numberOfTimeRanges]; // Lista dei valori di rumorosità dei campionamenti divisi per l'orario (ogni quarto d'ora) -> per la mappa
-		var samplesTimedDataGraph = [numberOfTimeRanges]; // Lista dei valori di rumorosità dei campionamenti divisi per l'orario (ogni quarto d'ora) -> per il grafico
-		var samplesLightTimedData = [numberOfTimeRanges]; // Lista dei valori di lumonosità dei campionamenti divisi per l'orario (ogni quarto d'ora -> 24*4) -> per la mappa
+		// Per il video
+		var sliderStep = 60;
+		var numberOfTimeRanges = 1440 / sliderStep;
+		var samplesIndexes = [numberOfTimeRanges]; // Lista degli indici utilizzata per mostrare i campionamenti divisi per l'orario
+		var samplesNoiseTimedData = [numberOfTimeRanges];
+		var samplesTimedDataGraph = [numberOfTimeRanges];
+		var samplesLightTimedData = [numberOfTimeRanges];
+		
+		// Per le immagini
+		var samplesLightData = [];
+		var samplesNoiseData = [];
+		var samplesGraphData = [];
 		
 		var currentArrayIndex;
 		
@@ -51,6 +57,8 @@
 		var lightGraph, noiseGraph;
 		
 		var userLocation;
+		
+		var isVideoSelected = false;
 		
 		function Comparator(a,b){
 			if (a[0] < b[0]) return -1;
@@ -88,10 +96,8 @@
 						samplesCoordsData.push(coord);
 						
 						bounds.extend(coord);
-						addInvisibleMarker(map, name, coord);
+						addInvisibleMarker(null, name, coord);
 					}
-					toggleSamples(); // di default mostro i campionamenti
-					//$('#wait').hide();
 				}
 			}
 			//$('#wait').show();
@@ -139,7 +145,10 @@
 				graphData = [];
 				var samplesDataTemp;
 				if(currentShown == 0) samplesDataTemp = samplesData;
-				else if(currentShown == 1 || currentShown == 2) samplesDataTemp = samplesTimedDataGraph[currentArrayIndex];
+				else if(currentShown == 1 || currentShown == 2){
+					if(isVideoSelected) samplesDataTemp = samplesTimedDataGraph[currentArrayIndex];
+					else samplesDataTemp = samplesGraphData;
+				}
 				
 				for (var i = 0; i < samplesDataTemp.length; i++) {
 					var jsonCoord = samplesDataTemp[i];
@@ -147,7 +156,8 @@
 					var dist = distanceInMeters(currentCoord.lat(), currentCoord.lng(), jsonCoord[1], jsonCoord[2]);
 					if(dist <= radius){
 						var ms=Date.parse(jsonCoord[3])-offsetMS;
-						if(ms >= mindate && ms <= maxdate)
+						var date = new Date(ms);
+						if(ms >= mindate && ms <= maxdate && date.getHours() >= (minhour/60) && date.getHours() <= ((maxhour-60)/60))
 							graphData.push(jsonCoord); // Inserisco il sample nell'array graphData
 					}
 				}
@@ -232,7 +242,9 @@
 			offsetMS = date.getTimezoneOffset()*60*1000;
 					
 			getSamples();
+			createLightAndNoiseArrays();
 			createTimedArrays();
+			toggleSamples();
 			map.fitBounds(bounds);
 						
 			var min = new Date(mindate);
@@ -262,7 +274,10 @@
 						mindate = tmpmindate;
 					}
 					var selectedtimestart = Number($( "#datepickerfrom" ).val().split(" ")[1].split(":")[0]);
-					minhour = selectedtimestart * sliderStep * (60/sliderStep);
+					var selectedmins = Number($( "#datepickerfrom" ).val().split(" ")[1].split(":")[1]);
+					if(selectedmins > 30)
+						selectedtimestart++;
+					minhour = selectedtimestart * 60;
 					if(lastselectedminhour==-1) lastselectedminhour=minhour;
 					if(maxhour <= minhour){
 						alert("The selected hour value must be smaller than the other one");
@@ -274,6 +289,7 @@
 					$('#slider-time').slider('value',minhour);
 					slideToggleFunction(minhour);
 					
+					createLightAndNoiseArrays();
 					if(currentShown == 0) toggleSamples();
 					else if(currentShown == 1) toggleLight();
 					else if(currentShown == 2) toggleNoise();
@@ -305,7 +321,10 @@
 					}
 					else maxdate = tmpmaxdate;
 					var selectedtimeend =  Number($( "#datepickerto" ).val().split(" ")[1].split(":")[0]);
-					maxhour = selectedtimeend * sliderStep * (60/sliderStep);
+					var selectedmins = Number($( "#datepickerto" ).val().split(" ")[1].split(":")[1]);
+					if(selectedmins > 30)
+						selectedtimeend++;
+					maxhour = selectedtimeend * 60;
 					if(lastselectedmaxhour==-1) lastselectedmaxhour=maxhour;
 					if((maxhour) <= minhour){
 						alert("The selected hour value must be greater than the other one");
@@ -316,6 +335,8 @@
 					$('#rightSlider').css('width', 100 - ((maxhour)*100/1440) +'%');
 					$('#slider-time').slider('value',minhour);
 					slideToggleFunction(minhour);
+					
+					createLightAndNoiseArrays();
 					if(currentShown == 0) toggleSamples();
 					else if(currentShown == 1) toggleLight();
 					else if(currentShown == 2) toggleNoise();
@@ -550,10 +571,8 @@
 			
 			$('#time').html(hours+':'+minutes+" - "+hourend+':'+minend);
 			
-			if(currentShown == 1 || currentShown == 2){
-				updateDataInTimeRange();
-				showGraph();
-			}
+			updateDataInTimeRange();
+			showGraph();
 		}
 		
 		var lastslidervalue = -1;
@@ -609,6 +628,47 @@
 			return noise;
 		}
 		
+		function createLightAndNoiseArrays(){
+			samplesLightData = [];
+			samplesNoiseData = [];
+			samplesGraphData = [];
+			for(var i=0; i<samplesData.length; i++){
+				var jsonCoord = samplesData[i];
+				
+				var coord = new google.maps.LatLng(jsonCoord[1], jsonCoord[2]);
+				var light = getLightFromJson(jsonCoord);
+				var noise = getNoiseFromJson(jsonCoord);
+				var ms=Date.parse(jsonCoord[3])-offsetMS;
+				var date = new Date(ms);
+				if(ms >= mindate && ms <= maxdate && date.getHours() >= (minhour/60) && date.getHours() <= ((maxhour-60)/60)){
+					var checkAdd = true;
+					samplesGraphData.push(jsonCoord);
+					for(var j=0; j<samplesLightData.length; j++){
+						var toCheck = samplesLightData[j];
+						var d = distanceInMeters(coord.lat(),coord.lng(),
+												 toCheck.location.lat(),toCheck.location.lng());
+						if(d<10){
+							checkAdd = false;
+							var w1 = light / 10;
+							var w2 = noise / 10;
+							samplesLightData[j].weight = (samplesLightData[j].weight + w1)/2;
+							samplesLightData[j].indexes.push(i);
+							samplesNoiseData[j].weight = (samplesNoiseData[j].weight + w2)/2;
+							samplesNoiseData[j].indexes.push(i);
+						}
+					}
+					if(checkAdd){
+						samplesLightData.push({location:coord, weight: light/10});
+						samplesLightData[samplesLightData.length-1].indexes = [];
+						samplesLightData[samplesLightData.length-1].indexes.push(i);
+						samplesNoiseData.push({location:coord, weight: noise/10});
+						samplesNoiseData[samplesNoiseData.length-1].indexes = [];
+						samplesNoiseData[samplesNoiseData.length-1].indexes.push(i);
+					}
+				}
+			}
+		}
+		
 		function createTimedArrays(){
 			numberOfTimeRanges = 1440 / sliderStep;
 			samplesIndexes = [numberOfTimeRanges];
@@ -634,7 +694,7 @@
 				var light = getLightFromJson(jsonCoord);
 				var noise = getNoiseFromJson(jsonCoord);
 				
-				samplesTimedDataGraph[arrayIndex].push(jsonCoord);
+				samplesTimedDataGraph[arrayIndex].push({location:coord});
 				
 				var checkAdd = true;
 				for(var j=0; j<samplesIndexes[arrayIndex].length; j++){
@@ -660,22 +720,36 @@
 			/*for(var i=0; i<numberOfTimeRanges; i++){
 				console.log("#"+i+": "+samplesLightTimedData[i].length);
 			}*/
-			
 		}
 		
 		function updateDataInTimeRange(){
-			if(currentShown == 1 || currentShown == 2){
-				heatmap.setData([]);
-				setAllMap(null);
-				currentArrayIndex = parseInt(hours)*(60/sliderStep) + parseInt(minutes/sliderStep);
-				
+			heatmap.setData([]);
+			setAllMap(null);
+			currentArrayIndex = parseInt(hours)*(60/sliderStep) + parseInt(minutes/sliderStep);
+			if(currentShown == 0){
+				var samplesDataTimeRange = [];
+				for(var i=0; i<samplesIndexes[currentArrayIndex].length; i++){
+					var jsonCoord = samplesData[samplesIndexes[currentArrayIndex][i]];
+					var ms=Date.parse(jsonCoord[3])-offsetMS;
+					var date = new Date(ms);
+					if(ms >= mindate && ms <= maxdate && date.getHours() >= (minhour/60) && date.getHours() <= ((maxhour-60)/60)){
+						var coord = new google.maps.LatLng(jsonCoord[1], jsonCoord[2]);
+						setMarkerMap(samplesIndexes[currentArrayIndex][i],map);
+						samplesDataTimeRange.push(samplesTimedDataGraph[currentArrayIndex][i]);
+					}
+				}
+				console.log(samplesDataTimeRange);
+				var dataToSet = new google.maps.MVCArray(samplesDataTimeRange);
+				heatmap.setData(dataToSet);
+			}
+			else if(currentShown == 1 || currentShown == 2){
 				var lightDataTimeRange = [];
 				var noiseDataTimeRange = [];
 				for(var i=0; i<samplesIndexes[currentArrayIndex].length; i++){
-					
 					var jsonCoord = samplesData[samplesIndexes[currentArrayIndex][i]];
 					var ms=Date.parse(jsonCoord[3])-offsetMS;
-					if(ms >= mindate && ms <= maxdate){
+					var date = new Date(ms);
+					if(ms >= mindate && ms <= maxdate && date.getHours() >= (minhour/60) && date.getHours() <= ((maxhour-60)/60)){
 						var coord = new google.maps.LatLng(jsonCoord[1], jsonCoord[2]);
 						setMarkerMap(samplesIndexes[currentArrayIndex][i],map);
 						if(currentShown == 1)
@@ -699,17 +773,23 @@
 			$("#samplesButton").addClass("buttonActive");
 			$("#lightButton").removeClass("buttonActive");
 			$("#noiseButton").removeClass("buttonActive");
-			document.getElementById("bottomSlider").style.display = "none";
-			//if(currentShown != 0){
-				currentShown = 0;
-				heatmap.setData([]);
-				setAllMap(null);
-				var samplesCoordsDataTimeRange = [];
+			var samplesCoordsDataTimeRange = [];
+			currentShown = 0;
+			heatmap.setData([]);
+			setAllMap(null);
+			removeMarker();
+			if(isVideoSelected == true){
+				updateDataInTimeRange();
+				if(currentCoord != null) showGraph();
+				if(isPlaying) playpause();
+			}
+			else{
 				for (var i = 0; i < samplesData.length; i++) {
 					var jsonCoord = samplesData[i]; 
 					//[0]=id, [1]=lat, [2]=lng, [3]=timestamp, [4]=type1, [5]=value1, [6]=type2, [7]=value2
 					var ms=Date.parse(jsonCoord[3])-offsetMS;
-					if(ms >= mindate && ms <= maxdate){
+					var date = new Date(ms);
+					if(ms >= mindate && ms <= maxdate && date.getHours() >= (minhour/60) && date.getHours() <= ((maxhour-60)/60)){
 						var coord = new google.maps.LatLng(jsonCoord[1], jsonCoord[2]);
 						setMarkerMap(i,map);
 						samplesCoordsDataTimeRange.push(coord);
@@ -719,41 +799,55 @@
 					alert("There are no samples in this range");
 				var pointArray = new google.maps.MVCArray(samplesCoordsDataTimeRange);
 				heatmap.setData(pointArray);
-				if(currentCoord != null) showGraph();
-				if(isPlaying) playpause();
-			//}
+			}
 		}
 		
 		function toggleLight() {
 			$("#samplesButton").removeClass("buttonActive");
 			$("#lightButton").addClass("buttonActive");
 			$("#noiseButton").removeClass("buttonActive");
-			//removeMarker();
-			document.getElementById("bottomSlider").style.display = "block";
-			//if(currentShown != 1){
-				currentShown = 1;
-				heatmap.setData([]);
-				setAllMap(null);
+			currentShown = 1;
+			heatmap.setData([]);
+			setAllMap(null);
+			removeMarker();
+			if(isVideoSelected == true){
 				updateDataInTimeRange();
 				if(currentCoord != null) showGraph();
 				if(isPlaying) playpause();
-			//}
+			}
+			else{
+				for (var i = 0; i < samplesLightData.length; i++) {
+					for(var j=0; j<samplesLightData[i].indexes.length; j++){
+						setMarkerMap(samplesLightData[i].indexes[j],map);
+					}
+				}
+				var pointArray = new google.maps.MVCArray(samplesLightData);
+				heatmap.setData(pointArray);
+			}
 		}
 		
 		function toggleNoise() {
 			$("#samplesButton").removeClass("buttonActive");
 			$("#lightButton").removeClass("buttonActive");
 			$("#noiseButton").addClass("buttonActive");
-			//removeMarker();
-			document.getElementById("bottomSlider").style.display = "block";
-			//if(currentShown != 2){
-				currentShown = 2;
-				heatmap.setData([]);
-				setAllMap(null);
+			currentShown = 2;
+			heatmap.setData([]);
+			setAllMap(null);
+			removeMarker();
+			if(isVideoSelected == true){
 				updateDataInTimeRange();
 				if(currentCoord != null) showGraph();
 				if(isPlaying) playpause();
-			//}
+			}
+			else{
+				for (var i = 0; i < samplesNoiseData.length; i++) {
+					for(var j=0; j<samplesNoiseData[i].indexes.length; j++){
+						setMarkerMap(samplesNoiseData[i].indexes[j],map);
+					}
+				}
+				var pointArray = new google.maps.MVCArray(samplesNoiseData);
+				heatmap.setData(pointArray);
+			}
 		}
 		
 		function removeMarker() {
@@ -809,7 +903,6 @@
 					function () {
 						var val = $('#slider-time').slider("option", "value");
 						val+=sliderStep;
-						console.log("val="+val+", minhour="+minhour+", maxhour="+maxhour);
 						if(val>=1440 || val <= minhour || val > (maxhour-sliderStep)){
 							$('#slider-time').slider('value',minhour);
 							slideToggleFunction(minhour);
@@ -878,6 +971,36 @@
 				playpause();
 				//alert("Switch 6 changed to " + ($(this).prop("checked") ? "checked" : "unchecked"));
 			});
+			$("#videoimage").switchbutton({
+				checkedLabel: 'VIDEO',
+				uncheckedLabel: 'IMAGE'
+			})
+			.change(function(){
+				if(isPlaying){
+					document.getElementById("img-playpause").src = "img/play.png";
+					window.clearInterval(timeoutVar);
+				}
+				if($(this).prop("checked") == true){
+					isVideoSelected = true;
+					$("#fastslow" ).prop( "disabled", false );
+					$("#timestep" ).prop( "disabled", false );
+					$("#playpause" ).prop( "disabled", false );
+					$("#slider-time" ).slider({ disabled: false });
+					
+				}
+				else{
+					isVideoSelected = false;
+					$("#fastslow" ).prop( "disabled", true );
+					$("#timestep" ).prop( "disabled", true );
+					$("#playpause" ).prop( "disabled", true );
+					$("#slider-time" ).slider({ disabled: true });
+					$('timestep').css('background-color','#eee');
+				}
+				if(currentShown == 0) toggleSamples();
+				else if(currentShown == 1) toggleLight();
+				else if(currentShown == 2) toggleNoise();
+			});
+			$("#videoimage").prop("checked", false).change();
 		});
 		
 		google.maps.event.addDomListener(window, 'load', initialize);
@@ -887,53 +1010,55 @@
 
   <body>
 	<button onclick="removeMarker()" id="removeMarkerId" class="myButton" style="display:none"  title="Remove the marker from the clicked position"><font size=3>Remove marker</font><img src="img/marker.png" height="23px" alt="Remove Marker" style="padding-left: 5px; vertical-align:middle;"/></button>
-    
-	<div id="fromto" class="labeltextbox" title="Set the dates range"><b>Show the samples in the range from:<input type="text"id="datepickerfrom" size=12>	to:<input type="text" id="datepickerto" size=12></b></div></div>
-	
-	<div id="bottomPanel">
-      <button onclick="toggleSamples()" id="samplesButton" title="Location of samples" class="myButton"><font size=5>Samples</font></button><br>
-      <button onclick="toggleLight()" id="lightButton" title="Light level, green means low light while red means high light" class="myButton"><font size=5>Light</font></button><br>
-      <button onclick="toggleNoise()" id="noiseButton" title="Noise level, green means a quiet area while red means a noisy area" class="myButton"><font size=5>Noise</font></button><br>
-	</div>
 	
 	<div id="bottomSlider" >
-		<table width="100%" height="100%">
+		<table width="100%" height="100%" >
 			<tr>
-				<td width="30%">
+				<td width="20%" rowspan="3" style="border-right:solid 2px #060">
+					<div id="bottomPanel">
+					  <button onclick="toggleSamples()" id="samplesButton" title="Location of samples" class="myButton"><font size=3>Samples</font></button><br>
+					  <button onclick="toggleLight()" id="lightButton" title="Light level, green means low light while red means high light" class="myButton"><font size=3>Light</font></button><br>
+					  <button onclick="toggleNoise()" id="noiseButton" title="Noise level, green means a quiet area while red means a noisy area" class="myButton"><font size=3>Noise</font></button><br>
+					</div>
+				</td>
+				<td width="20%" style="border-bottom:solid 2px #060">
+					<center><input type="checkbox" id="videoimage" style="position: relative;"/></center>
+				</td>
+				<td width="60%" colspan="2" style="border-bottom:solid 2px #060">
+					<center><div id="fromto"><b>Samples from:<input type="text"id="datepickerfrom" size=12>	to:<input type="text" id="datepickerto" size=12></b></div></center>
+				</td>
+				
+			</tr>
+			<tr>
+				<td>
 					<center><input type="checkbox" id="fastslow" style="position: relative;" /></center>
 				</td>
-				<td width="40%">
+				<td>
 					<center><b>Time range: <label id="time"></label></b></center>
 				</td>
-				<td width="30%">
+				<td>
 					<center>
 						<b>Time step</b>
 						<select id="timestep" class="styled-select blue semi-square">
 						  <option value=15>15 min</option>
 						  <option value=30>30 min</option>
 						  <option value=60 selected="selected">60 min</option>
-						  <option value=120>120 min</option>
-						  <option value=180>180 min</option>
-						  <option value=1440>All interval</option>
 						</select>
 					</center>
 				</td>
-				
 			</tr>
-		</table>
-		<table width="100%" height="100%">
 			<tr>
-				<td width="10%">
-					<div id="sliderControls" style="display:inline;">
-						<div style="display:inline;"><button onclick="playpause()" id="playpause" class="myButton"  title="Play/Pause animation"><img id="img-playpause" src="img/play.png" width="20" height="20" /> </button></div>
-					</div>
-				</td>
-				<td width="90%">
+				<td width="100%" colspan="3">
 					<table width="100%" height="100%">
+						<td width="5%">
+							<div id="sliderControls" style="display:inline;">
+								<div style="display:inline;"><button onclick="playpause()" id="playpause" class="myButton"  title="Play/Pause animation"><img id="img-playpause" src="img/play.png" width="20" height="20" /> </button></div>
+							</div>
+						</td>
 						<td width="5%">
 							<center><div id="timestart"><b>00:00</b></div></center>
 						</td>
-						<td width="90%">
+						<td width="85%">
 							<center><div id="slider-time" style="margin-left: 5px; margin-right:5px;"></div></center>
 						</td>
 						<td width="5%">

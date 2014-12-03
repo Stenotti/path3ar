@@ -30,19 +30,23 @@ html, body, #map-canvas {
     height: 100%;
     background: red;
 }
-
+/*
 #fromto{
 	position: absolute;
 	top: 2%;
 	left: 8%;
 	z-index: 5;
 	padding: 5px;
-}
+}*/
 .styled-select {
    height: 29px;
    overflow: hidden;
 }
-
+select:disabled
+{
+    border: solid 1px silver;
+    background-color: #CCC;
+}
 .styled-select select {
    background: transparent;
    border: none;
@@ -102,7 +106,7 @@ select#soflow-color {
    border-radius: 20px;
    padding-left: 15px;
 }
-
+/*
 #bottomPanel {
 	position: absolute;
 	bottom: 4%;
@@ -110,11 +114,11 @@ select#soflow-color {
 	right: auto;
 	z-index: 5;
 	padding: 5px;
-}
+}*/
 #bottomSlider {
 	position: absolute;
 	bottom: 4%;
-	left: 12%;
+	left: 2%;
 	right: 55%;
 	z-index: 5;
 	padding: 15px;
@@ -124,6 +128,7 @@ select#soflow-color {
 	box-shadow: 0 0 5px 3px #007ba8; 
 	color: #666; 
 	outline: none; 
+	opacity: 1;
 }
 
 #controlButtons {
