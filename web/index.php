@@ -738,7 +738,6 @@
 						samplesDataTimeRange.push(samplesTimedDataGraph[currentArrayIndex][i]);
 					}
 				}
-				console.log(samplesDataTimeRange);
 				var dataToSet = new google.maps.MVCArray(samplesDataTimeRange);
 				heatmap.setData(dataToSet);
 			}
@@ -986,6 +985,8 @@
 					$("#timestep" ).prop( "disabled", false );
 					$("#playpause" ).prop( "disabled", false );
 					$("#slider-time" ).slider({ disabled: false });
+					$("#tablerow1" ).css( "opacity", 1.0 );
+					$("#tablerow2" ).css( "opacity", 1.0 );
 					
 				}
 				else{
@@ -995,6 +996,8 @@
 					$("#playpause" ).prop( "disabled", true );
 					$("#slider-time" ).slider({ disabled: true });
 					$('timestep').css('background-color','#eee');
+					$("#tablerow1" ).css( "opacity", 0.4 );
+					$("#tablerow2" ).css( "opacity", 0.4 );
 				}
 				if(currentShown == 0) toggleSamples();
 				else if(currentShown == 1) toggleLight();
@@ -1029,7 +1032,7 @@
 				</td>
 				
 			</tr>
-			<tr>
+			<tr id="tablerow1">
 				<td>
 					<center><input type="checkbox" id="fastslow" style="position: relative;" /></center>
 				</td>
@@ -1047,7 +1050,7 @@
 					</center>
 				</td>
 			</tr>
-			<tr>
+			<tr id="tablerow2">
 				<td width="100%" colspan="3">
 					<table width="100%" height="100%">
 						<td width="5%">
