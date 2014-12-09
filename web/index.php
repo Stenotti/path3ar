@@ -59,6 +59,7 @@
 		var userLocation;
 		
 		var isVideoSelected = false;
+		var isTimeSlot = false;
 		
 		function Comparator(a,b){
 			if (a[0] < b[0]) return -1;
@@ -144,7 +145,10 @@
 			if(currentCoord != null){
 				graphData = [];
 				var samplesDataTemp;
-				if(currentShown == 0) samplesDataTemp = samplesData;
+				if(currentShown == 0){
+					if(isVideoSelected) samplesDataTemp = samplesTimedDataGraph[currentArrayIndex];
+					else samplesDataTemp = samplesData;
+				} 
 				else if(currentShown == 1 || currentShown == 2){
 					if(isVideoSelected) samplesDataTemp = samplesTimedDataGraph[currentArrayIndex];
 					else samplesDataTemp = samplesGraphData;
@@ -157,7 +161,12 @@
 					if(dist <= radius){
 						var ms=Date.parse(jsonCoord[3])-offsetMS;
 						var date = new Date(ms);
-						if(ms >= mindate && ms <= maxdate && date.getHours() >= (minhour/60) && date.getHours() <= ((maxhour-60)/60))
+						var check = false;
+						if(isTimeSlot == true)
+							check = (ms >= mindate && ms <= maxdate && date.getHours() >= (minhour/60) && date.getHours() <= ((maxhour-60)/60));
+						else
+							check = (ms >= mindate && ms <= maxdate);
+						if(check)
 							graphData.push(jsonCoord); // Inserisco il sample nell'array graphData
 					}
 				}
@@ -439,12 +448,10 @@
 			
 			$('#graphLightToggle').click(function() {
 				  $('#graphLight').slideToggle();
-				  console.log($(this)+" - "+$(this).next());
 				  return false;
 			});
 			$('#graphNoiseToggle').click(function() {
 				  $('#graphNoise').slideToggle();
-				  console.log($(this)+" - "+$(this).next());
 				  return false;
 			});
 			centerLocation(true);
@@ -640,7 +647,12 @@
 				var noise = getNoiseFromJson(jsonCoord);
 				var ms=Date.parse(jsonCoord[3])-offsetMS;
 				var date = new Date(ms);
-				if(ms >= mindate && ms <= maxdate && date.getHours() >= (minhour/60) && date.getHours() <= ((maxhour-60)/60)){
+				var check = false;
+				if(isTimeSlot == true)
+					check = (ms >= mindate && ms <= maxdate && date.getHours() >= (minhour/60) && date.getHours() <= ((maxhour-60)/60));
+				else
+					check = (ms >= mindate && ms <= maxdate);
+				if(check){
 					var checkAdd = true;
 					samplesGraphData.push(jsonCoord);
 					for(var j=0; j<samplesLightData.length; j++){
@@ -694,7 +706,8 @@
 				var light = getLightFromJson(jsonCoord);
 				var noise = getNoiseFromJson(jsonCoord);
 				
-				samplesTimedDataGraph[arrayIndex].push({location:coord});
+				//samplesTimedDataGraph[arrayIndex].push({location:coord});
+				samplesTimedDataGraph[arrayIndex].push(jsonCoord);
 				
 				var checkAdd = true;
 				for(var j=0; j<samplesIndexes[arrayIndex].length; j++){
@@ -732,10 +745,16 @@
 					var jsonCoord = samplesData[samplesIndexes[currentArrayIndex][i]];
 					var ms=Date.parse(jsonCoord[3])-offsetMS;
 					var date = new Date(ms);
-					if(ms >= mindate && ms <= maxdate && date.getHours() >= (minhour/60) && date.getHours() <= ((maxhour-60)/60)){
+					var check = false;
+					if(isTimeSlot == true)
+						check = (ms >= mindate && ms <= maxdate && date.getHours() >= (minhour/60) && date.getHours() <= ((maxhour-60)/60));
+					else
+						check = (ms >= mindate && ms <= maxdate);
+					if(check){
 						var coord = new google.maps.LatLng(jsonCoord[1], jsonCoord[2]);
 						setMarkerMap(samplesIndexes[currentArrayIndex][i],map);
-						samplesDataTimeRange.push(samplesTimedDataGraph[currentArrayIndex][i]);
+						var coord = new google.maps.LatLng(samplesTimedDataGraph[currentArrayIndex][i][1], samplesTimedDataGraph[currentArrayIndex][i][2]);
+						samplesDataTimeRange.push(coord);
 					}
 				}
 				var dataToSet = new google.maps.MVCArray(samplesDataTimeRange);
@@ -748,7 +767,12 @@
 					var jsonCoord = samplesData[samplesIndexes[currentArrayIndex][i]];
 					var ms=Date.parse(jsonCoord[3])-offsetMS;
 					var date = new Date(ms);
-					if(ms >= mindate && ms <= maxdate && date.getHours() >= (minhour/60) && date.getHours() <= ((maxhour-60)/60)){
+					var check = false;
+					if(isTimeSlot == true)
+						check = (ms >= mindate && ms <= maxdate && date.getHours() >= (minhour/60) && date.getHours() <= ((maxhour-60)/60));
+					else
+						check = (ms >= mindate && ms <= maxdate);
+					if(check){
 						var coord = new google.maps.LatLng(jsonCoord[1], jsonCoord[2]);
 						setMarkerMap(samplesIndexes[currentArrayIndex][i],map);
 						if(currentShown == 1)
@@ -788,7 +812,12 @@
 					//[0]=id, [1]=lat, [2]=lng, [3]=timestamp, [4]=type1, [5]=value1, [6]=type2, [7]=value2
 					var ms=Date.parse(jsonCoord[3])-offsetMS;
 					var date = new Date(ms);
-					if(ms >= mindate && ms <= maxdate && date.getHours() >= (minhour/60) && date.getHours() <= ((maxhour-60)/60)){
+					var check = false;
+					if(isTimeSlot == true)
+						check = (ms >= mindate && ms <= maxdate && date.getHours() >= (minhour/60) && date.getHours() <= ((maxhour-60)/60));
+					else
+						check = (ms >= mindate && ms <= maxdate);
+					if(check){
 						var coord = new google.maps.LatLng(jsonCoord[1], jsonCoord[2]);
 						setMarkerMap(i,map);
 						samplesCoordsDataTimeRange.push(coord);
@@ -970,9 +999,20 @@
 				playpause();
 				//alert("Switch 6 changed to " + ($(this).prop("checked") ? "checked" : "unchecked"));
 			});
+			
+			$("#timetype").switchbutton({
+				checkedLabel: 'SLOT',
+				uncheckedLabel: 'CONTINUOUS'
+			})
+			.change(function(){
+				isTimeSlot = !isTimeSlot;
+				if(currentShown == 0) toggleSamples();
+				else if(currentShown == 1) toggleLight();
+				else if(currentShown == 2) toggleNoise();
+			});
 			$("#videoimage").switchbutton({
-				checkedLabel: 'VIDEO',
-				uncheckedLabel: 'IMAGE'
+				checkedLabel: 'EVOLUTION',
+				uncheckedLabel: 'AVERAGE'
 			})
 			.change(function(){
 				if(isPlaying){
@@ -1017,37 +1057,42 @@
 	<div id="bottomSlider" >
 		<table width="100%" height="100%" >
 			<tr>
-				<td width="20%" rowspan="3" style="border-right:solid 2px #060">
+				<td rowspan="3" style="border-right:solid 2px #060">
 					<div id="bottomPanel">
 					  <button onclick="toggleSamples()" id="samplesButton" title="Location of samples" class="myButton"><font size=3>Samples</font></button><br>
 					  <button onclick="toggleLight()" id="lightButton" title="Light level, green means low light while red means high light" class="myButton"><font size=3>Light</font></button><br>
 					  <button onclick="toggleNoise()" id="noiseButton" title="Noise level, green means a quiet area while red means a noisy area" class="myButton"><font size=3>Noise</font></button><br>
 					</div>
 				</td>
-				<td width="20%" style="border-bottom:solid 2px #060">
+				<td style="border-bottom:solid 2px #060">
 					<center><input type="checkbox" id="videoimage" style="position: relative;"/></center>
+					<center><input type="checkbox" id="timetype" style="position: relative;"/></center>
 				</td>
-				<td width="60%" colspan="2" style="border-bottom:solid 2px #060">
-					<center><div id="fromto"><b>Samples from:<input type="text"id="datepickerfrom" size=12>	to:<input type="text" id="datepickerto" size=12></b></div></center>
+				<td colspan="2" style="border-bottom:solid 2px #060">
+					<center><div id="fromto"><b>Show samples in the range<table ><tr><td align="right">from:</td><td align="center"><input type="text"id="datepickerfrom" title="The samples are selected in the hours range selected" size=12></td></tr><tr><td align="right">to:</td><td align="center"><input type="text" id="datepickerto" size=12></td></tr></table></b></div></center>
 				</td>
 				
 			</tr>
 			<tr id="tablerow1">
-				<td>
-					<center><input type="checkbox" id="fastslow" style="position: relative;" /></center>
-				</td>
-				<td>
-					<center><b>Time range: <label id="time"></label></b></center>
-				</td>
-				<td>
-					<center>
-						<b>Time step</b>
-						<select id="timestep" class="styled-select blue semi-square">
-						  <option value=15>15 min</option>
-						  <option value=30>30 min</option>
-						  <option value=60 selected="selected">60 min</option>
-						</select>
-					</center>
+				<td width="100%" colspan="3">
+					<table width="100%" height="100%">
+						<td>
+							<center><input type="checkbox" id="fastslow" style="position: relative;" /></center>
+						</td>
+						<td>
+							<center><b>Time range: <label id="time"></label></b></center>
+						</td>
+						<td>
+							<center>
+								<b>Time step</b>
+								<select id="timestep" class="styled-select blue semi-square">
+								  <option value=15>15 min</option>
+								  <option value=30>30 min</option>
+								  <option value=60 selected="selected">60 min</option>
+								</select>
+							</center>
+						</td>
+					</table>
 				</td>
 			</tr>
 			<tr id="tablerow2">
