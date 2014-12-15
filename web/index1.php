@@ -524,15 +524,6 @@
 					slideToggleFunction(minhour);
 				}
 			});
-			var tabs =  $(".tabs li a");
-			tabs.click(function() {
-				var panels = this.hash.replace('/','');
-				tabs.removeClass("active");
-				$(this).addClass("active");
-			$("#panels").find('p').hide();
-			jQuery("#toInsert").detach().appendTo('#samples');
-			$(panels).fadeIn(200);
-			});
 		}
 		var lasttimestep = 60;
 		
@@ -1056,52 +1047,23 @@
 		});
 		
 		google.maps.event.addDomListener(window, 'load', initialize);
+
     </script>
   </head>
 
   <body>
 	<button onclick="removeMarker()" id="removeMarkerId" class="myButton" style="display:none"  title="Remove the marker from the clicked position"><font size=3>Remove marker</font><img src="img/marker.png" height="23px" alt="Remove Marker" style="padding-left: 5px; vertical-align:middle;"/></button>
 	
-	
-	<div id="controlButtons">
-		 <div><button onclick="fullscreen()" id="fullscreen" class="myButton"  title="Fullscreen toggle"><img id="image_fullscren" src="img/fullscreen_in.png" width="40" height="40" title="Fullscreen" /> </button></div>
-		 <div><button onclick="centerLocation(false)" id="userLocation" class="myButton"  title="Center the map in the user location"><img src="img/centerlocation.png" width="40" height="40" title="User Location" /> </button></div>
-	</div>
-	
-	<div class="wrap" id="bottomSlider">
-		  <ul class="tabs group">
-			<li><a class="active" href="#/samples">Samples</a></li>
-			<li><a href="#/light">Light</a></li>
-			<li><a href="#/noise">Noise</a></li>
-		  </ul>
-		  <div id="panels">
-			<p id="samples"></p>
-			<p id="light"></p>
-			<p id="noise"></p>
-		  </div>
-	</div>
-	
-	<table width="100%" height="100%">
-		<tr>
-			<td width="50%" id="contentMap">
-				<div id="map-canvas" ></div>
-			</td>
-			<td width="50%" id="contentGraphs" >
-				<div id="infoRadius" class="labeltextbox" title="Set the marker radius">Radius: <input type="number" id="radiusM" max="30000" min="1" size="2" value="100" class="textbox"> m</div>
-				<div class="scrollable">
-					<center><b><div id="numSamples"></div></b></center>
-					<button class="myButton" id="graphLightToggle" style="float: right;">Show/Hide Light Graph</button>
-					<div id="graphLight"></div><br>
-					<button class="myButton" id="graphNoiseToggle" style="float: right;">Show/Hide Noise Graph</button>
-					<div id="graphNoise"></div>
-				</div>
-			</td>
-		</tr>
-	</table>
-	
-	<div id="toInsert">
+	<div id="bottomSlider" >
 		<table width="100%" height="100%" >
 			<tr>
+				<td rowspan="3" style="border-right:solid 2px #060">
+					<div id="bottomPanel">
+					  <button onclick="toggleSamples()" id="samplesButton" title="Location of samples" class="myButton"><font size=3>Samples</font></button><br>
+					  <button onclick="toggleLight()" id="lightButton" title="Light level, green means low light while red means high light" class="myButton"><font size=3>Light</font></button><br>
+					  <button onclick="toggleNoise()" id="noiseButton" title="Noise level, green means a quiet area while red means a noisy area" class="myButton"><font size=3>Noise</font></button><br>
+					</div>
+				</td>
 				<td style="border-bottom:solid 2px #060">
 					<center><input type="checkbox" id="videoimage" style="position: relative;"/></center>
 					<center><input type="checkbox" id="timetype" style="position: relative;"/></center>
@@ -1155,6 +1117,34 @@
 			</tr>
 		</table>
 	</div>
+	<div id="controlButtons">
+		 <div><button onclick="fullscreen()" id="fullscreen" class="myButton"  title="Fullscreen toggle"><img id="image_fullscren" src="img/fullscreen_in.png" width="40" height="40" title="Fullscreen" /> </button></div>
+		 <div><button onclick="centerLocation(false)" id="userLocation" class="myButton"  title="Center the map in the user location"><img src="img/centerlocation.png" width="40" height="40" title="User Location" /> </button></div>
+	</div>
 	
+	<table width="100%" height="100%">
+		<tr>
+			<td width="50%" id="contentMap">
+				<div id="map-canvas" ></div>
+			</td>
+			<td width="50%" id="contentGraphs" >
+				<div id="infoRadius" class="labeltextbox" title="Set the marker radius">Radius: <input type="number" id="radiusM" max="30000" min="1" size="2" value="100" class="textbox"> m</div>
+				<div class="scrollable">
+					<center><b><div id="numSamples"></div></b></center>
+					<button class="myButton" id="graphLightToggle" style="float: right;">Show/Hide Light Graph</button>
+					<div id="graphLight"></div><br>
+					<button class="myButton" id="graphNoiseToggle" style="float: right;">Show/Hide Noise Graph</button>
+					<div id="graphNoise"></div>
+				</div>
+			</td>
+		</tr>
+	</table>
+	
+
+	
+	<!-- <div id="wait" style="display:none;width:128px;height:128px;border:0px; position:absolute;top:40%;left:45%;padding:2px;">
+		<img src='img/loader.gif' width="100" height="100" /><br>
+		<font color="#fff">Caricamento dati</font>
+	</div> -->
   </body>
 </html>
