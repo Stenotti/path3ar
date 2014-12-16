@@ -107,10 +107,7 @@
 		}
 		
 		function addInvisibleMarker(map, name, latlng){
-			var url = document.URL.substring(0,document.URL.indexOf("#"));
-			if(url=="")
-				url = document.URL;
-			var image = new google.maps.MarkerImage(url+'img/invisible-marker.png',
+			var image = new google.maps.MarkerImage(document.URL+'img/invisible-marker.png',
 				null, 
 				null,
 				new google.maps.Point(10, 10)
@@ -253,34 +250,9 @@
 			var date = new Date();
 			offsetMS = date.getTimezoneOffset()*60*1000;
 					
-			var tabs =  $(".tabs li a");
-			tabs.click(function() {
-				var panels = this.hash.replace('/','');
-				tabs.removeClass("active");
-				$(this).addClass("active");
-				$("#panels").find('p').hide();
-				if(this.hash == "#/samples"){
-					toggleSamples();
-					$("#tabTitle").html("Number and location of samples");
-					jQuery("#toInsert").detach().appendTo('#samples');
-				}
-				else if(this.hash == "#/light"){
-					toggleLight();
-					$("#tabTitle").html("Light values");
-					jQuery("#toInsert").detach().appendTo('#light');
-				}
-				else if(this.hash == "#/noise"){
-					toggleNoise();
-					$("#tabTitle").html("Noise values");
-					jQuery("#toInsert").detach().appendTo('#noise');
-				}
-				$(panels).fadeIn(0);
-			});
-			
 			getSamples();
 			createLightAndNoiseArrays();
 			createTimedArrays();
-			jQuery("#toInsert").detach().appendTo('#samples');
 			toggleSamples();
 			map.fitBounds(bounds);
 						
@@ -522,7 +494,7 @@
 				onShow: null,                   // callback function that fires after atooltip has shown  
 				onHide: null                    // callback function that fires after atooltip has faded out      
 			});
-			$('#timetypediv').aToolTip({  
+			$('#fromto').aToolTip({  
 				// no need to change/override 
 				toolTipId: 'aToolTip',  
 				// ok to override  
@@ -552,7 +524,6 @@
 					slideToggleFunction(minhour);
 				}
 			});
-
 		}
 		var lasttimestep = 60;
 		
@@ -1050,11 +1021,23 @@
 				}
 				if($(this).prop("checked") == true){
 					isVideoSelected = true;
-					jQuery("#tablerow").show();
+					$("#fastslow" ).prop( "disabled", false );
+					$("#timestep" ).prop( "disabled", false );
+					$("#playpause" ).prop( "disabled", false );
+					$("#slider-time" ).slider({ disabled: false });
+					$("#tablerow1" ).css( "opacity", 1.0 );
+					$("#tablerow2" ).css( "opacity", 1.0 );
+					
 				}
 				else{
 					isVideoSelected = false;
-					jQuery("#tablerow").hide();
+					$("#fastslow" ).prop( "disabled", true );
+					$("#timestep" ).prop( "disabled", true );
+					$("#playpause" ).prop( "disabled", true );
+					$("#slider-time" ).slider({ disabled: true });
+					$('timestep').css('background-color','#eee');
+					$("#tablerow1" ).css( "opacity", 0.4 );
+					$("#tablerow2" ).css( "opacity", 0.4 );
 				}
 				if(currentShown == 0) toggleSamples();
 				else if(currentShown == 1) toggleLight();
@@ -1063,34 +1046,80 @@
 			$("#videoimage").prop("checked", false).change();
 		});
 		
-		function buildPanel(){
-			jQuery("#toInsert").detach().appendTo('#samples');
-		}
-		
 		google.maps.event.addDomListener(window, 'load', initialize);
+
     </script>
   </head>
 
   <body>
 	<button onclick="removeMarker()" id="removeMarkerId" class="myButton" style="display:none"  title="Remove the marker from the clicked position"><font size=3>Remove marker</font><img src="img/marker.png" height="23px" alt="Remove Marker" style="padding-left: 5px; vertical-align:middle;"/></button>
 	
-	
+	<div id="bottomSlider" >
+		<table width="100%" height="100%" >
+			<tr>
+				<td rowspan="3" style="border-right:solid 2px #060">
+					<div id="bottomPanel">
+					  <button onclick="toggleSamples()" id="samplesButton" title="Location of samples" class="myButton"><font size=3>Samples</font></button><br>
+					  <button onclick="toggleLight()" id="lightButton" title="Light level, green means low light while red means high light" class="myButton"><font size=3>Light</font></button><br>
+					  <button onclick="toggleNoise()" id="noiseButton" title="Noise level, green means a quiet area while red means a noisy area" class="myButton"><font size=3>Noise</font></button><br>
+					</div>
+				</td>
+				<td style="border-bottom:solid 2px #060">
+					<center><input type="checkbox" id="videoimage" style="position: relative;"/></center>
+					<center><input type="checkbox" id="timetype" style="position: relative;"/></center>
+				</td>
+				<td colspan="2" style="border-bottom:solid 2px #060">
+					<center><div id="fromto"><b>Show samples in the range<table ><tr><td align="right">from:</td><td align="center"><input type="text"id="datepickerfrom" title="The samples are selected in the hours range selected" size=12></td></tr><tr><td align="right">to:</td><td align="center"><input type="text" id="datepickerto" size=12></td></tr></table></b></div></center>
+				</td>
+				
+			</tr>
+			<tr id="tablerow1">
+				<td width="100%" colspan="3">
+					<table width="100%" height="100%">
+						<td>
+							<center><input type="checkbox" id="fastslow" style="position: relative;" /></center>
+						</td>
+						<td>
+							<center><b>Time range: <label id="time"></label></b></center>
+						</td>
+						<td>
+							<center>
+								<b>Time step</b>
+								<select id="timestep" class="styled-select blue semi-square">
+								  <option value=15>15 min</option>
+								  <option value=30>30 min</option>
+								  <option value=60 selected="selected">60 min</option>
+								</select>
+							</center>
+						</td>
+					</table>
+				</td>
+			</tr>
+			<tr id="tablerow2">
+				<td width="100%" colspan="3">
+					<table width="100%" height="100%">
+						<td width="5%">
+							<div id="sliderControls" style="display:inline;">
+								<div style="display:inline;"><button onclick="playpause()" id="playpause" class="myButton"  title="Play/Pause animation"><img id="img-playpause" src="img/play.png" width="20" height="20" /> </button></div>
+							</div>
+						</td>
+						<td width="5%">
+							<center><div id="timestart"><b>00:00</b></div></center>
+						</td>
+						<td width="85%">
+							<center><div id="slider-time" style="margin-left: 5px; margin-right:5px;"></div></center>
+						</td>
+						<td width="5%">
+							<center> <div id="timeend"><b>24:00</b></div></center>
+						</td>
+					</table>
+				</td>
+			</tr>
+		</table>
+	</div>
 	<div id="controlButtons">
 		 <div><button onclick="fullscreen()" id="fullscreen" class="myButton"  title="Fullscreen toggle"><img id="image_fullscren" src="img/fullscreen_in.png" width="40" height="40" title="Fullscreen" /> </button></div>
 		 <div><button onclick="centerLocation(false)" id="userLocation" class="myButton"  title="Center the map in the user location"><img src="img/centerlocation.png" width="40" height="40" title="User Location" /> </button></div>
-	</div>
-	
-	<div class="wrap" id="bottomSlider">
-		  <ul class="tabs group">
-			<li><a class="active" href="#/samples">Samples</a></li>
-			<li><a href="#/light">Light</a></li>
-			<li><a href="#/noise">Noise</a></li>
-		  </ul>
-		  <div id="panels">
-			<p id="samples"></p>
-			<p id="light"></p>
-			<p id="noise"></p>
-		  </div>
 	</div>
 	
 	<table width="100%" height="100%">
@@ -1111,58 +1140,11 @@
 		</tr>
 	</table>
 	
-	<div id="toInsert">
-		<center><font color="red"><div id="tabTitle">Number and location of samples</div></font></center>
-		<table width="100%" height="100%" id="tablePanel" >
-			<tr>
-				<td>
-					<center><div id="fromto">
-						From: <input type="text"id="datepickerfrom" size=12 />
-						To: <input type="text" id="datepickerto" size=12 />
-					</div></center>
-				</td>
-				<td>
-					<center><div id="timetypediv"  title="Show all samples made between the two dates/hours or just ones in the selected time slot"><input type="checkbox" id="timetype" style="position: relative;"/></div></center>
-				</td>
-			</tr>
-			<tr  valign="middle">
-				<td colspan="2">
-					<center><input type="checkbox" id="videoimage" style="position: relative;"/> <font size=2>Shows the average value of the samples or the evolution during the day</font></center>
-				</td>
-			</tr>
-			<tr id="tablerow">
-				<td width="100%" colspan="3">
-					<table width="100%" height="100%">
-						<td>
-							<center><input type="checkbox" id="fastslow" style="position: relative;" /></center>
-						</td>
-						<td width="5%">
-							<div style="display:inline;">
-								<button onclick="playpause()" id="playpause" class="myButton"  title="Play/Pause animation">
-									<img id="img-playpause" src="img/play.png" width="20" height="20" />
-								</button>
-							</div>
-						</td>
-						<td width="75%">
-							<center><div id="slider-time" style="margin-left: 5px; margin-right:5px;"></div>
-							<font size=2.5>Time range: <label id="time"></label></font></center>
-						</td>
-						<td width="10%">
-							<center>
-								<font size=2>Step</font>
-								<select id="timestep" class="styled-select blue semi-square">
-								  <option value=15>15 min</option>
-								  <option value=30>30 min</option>
-								  <option value=60 selected="selected">60 min</option>
-								</select>
-							</center>
-						</td>
-					</table>
-				</td>
-			</tr>
-		</table>
-	</div>
+
 	
-	
+	<!-- <div id="wait" style="display:none;width:128px;height:128px;border:0px; position:absolute;top:40%;left:45%;padding:2px;">
+		<img src='img/loader.gif' width="100" height="100" /><br>
+		<font color="#fff">Caricamento dati</font>
+	</div> -->
   </body>
 </html>
