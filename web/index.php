@@ -8,7 +8,7 @@
     <link href="css/index.css" rel="stylesheet" type="text/css">
     <link href="css/atooltip.css" rel="stylesheet" type="text/css">
     <link href="css/ui.switchbutton.css" rel="stylesheet" type="text/css">
-	<link rel="stylesheet" type="text/css" href="css/jquery.datetimepicker.css"/ >
+	<link rel="stylesheet" type="text/css" href="css/jquery.datetimepicker.css" >
 	<link rel="stylesheet" href="css/jquery-ui.css">
 	
 	<script src="js/customFormat.js"></script>
@@ -19,7 +19,7 @@
 	<script type="text/javascript" src="js/jquery.atooltip.min.js"></script>  
 	<script src="js/highstock.js"></script>
 	<script src="js/jquery.datetimepicker.js"></script>
-    <script src="https://maps.googleapis.com/maps/api/js?v=3.exp&libraries=visualization"></script>
+    <script src="https://maps.googleapis.com/maps/api/js?v=3.exp&amp;libraries=visualization"></script>
 	<script>
 		var samplesData; // Lista di tutti i campionamenti
 		var samplesCoordsData = []; // Lista delle coordinate dei campionamenti per la mappa
