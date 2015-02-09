@@ -99,8 +99,8 @@
 						bounds.extend(coord);
 						addInvisibleMarker(null, name, coord);
 						
-						callback_initialize();
 					}
+					callback_initialize();
 				}
 			}
 			//$('#wait').show();
