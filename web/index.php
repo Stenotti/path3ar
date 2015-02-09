@@ -98,11 +98,13 @@
 						
 						bounds.extend(coord);
 						addInvisibleMarker(null, name, coord);
+						
+						callback_initialize();
 					}
 				}
 			}
 			//$('#wait').show();
-			xmlhttp.open("GET","getSamples.php",false);
+			xmlhttp.open("GET","getSamples.php",true);
 			xmlhttp.send();
 		}
 		
@@ -278,6 +280,10 @@
 			});
 			
 			getSamples();
+			
+		}
+		
+		function callback_initialize(){
 			createLightAndNoiseArrays();
 			createTimedArrays();
 			jQuery("#toInsert").detach().appendTo('#samples');
@@ -552,8 +558,8 @@
 					slideToggleFunction(minhour);
 				}
 			});
-
 		}
+		
 		var lasttimestep = 60;
 		
 		function clickFunction(coord){
