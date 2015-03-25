@@ -1,6 +1,6 @@
 <?php
 
-$conn_string = "ec2-54-93-55-219.eu-central-1.compute.amazonaws.com port=5432 dbname=paths user=pathadmin password=pathdbpwd";
+$conn_string = "host=ec2-54-93-55-219.eu-central-1.compute.amazonaws.com port=5432 dbname=paths user=pathadmin password=pathdbpwd";
 $dbconn = pg_connect($conn_string) or die('connection failed');
 
 $result = pg_exec($dbconn, 
